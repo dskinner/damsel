@@ -1,0 +1,14 @@
+%html
+    %head
+        {js "/lib/jquery.js" "/lib/js.js" "main.js"}
+    %body
+        {template "header.gml"}
+        %ul
+            %li {.Name}
+                \is my name
+            %li {if .Email}{.Email}{end}
+            %li {if .Address}hola{else}None{end}
+            %li {range .Nums}
+                %span {.}
+                    %div boo
+                %span blah{end}
