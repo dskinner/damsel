@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
-	"strings"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 )
 
 func Open(filename string, dir string) []byte {
@@ -250,6 +250,9 @@ func lexWhiteSpace(l *Lexer) stateFn {
 		l.next()
 	case '\n':
 		l.discard()
+	case '[': // continued attr
+		l.discard()
+		return lexAttributeKey
 	case '\\':
 		l.textWs = l.pos - l.start
 		l.discard()
@@ -359,11 +362,21 @@ func lexAttributeKey(l *Lexer) stateFn {
 	case ']':
 		l.curElem.attr = append(l.curElem.attr, [][][]byte{[][]byte{l.bytes[l.start:l.pos], nil}}...)
 		l.discard()
+		
+		if l.eof() {
+			return lexWhiteSpace // TODO maybe should return an EOF stateFn
+		}
 
 		// check for another attr
 		if l.bytes[l.pos] == '[' {
 			l.discard()
 			return lexAttributeKey
+		}
+		
+		// check for end of line
+		if l.bytes[l.pos] == '\n' {
+			l.discard()
+			return lexWhiteSpace
 		}
 
 		// check if inline tag
@@ -393,6 +406,10 @@ func lexAttributeValue(l *Lexer) stateFn {
 		l.curElem.attr[len(l.curElem.attr)-1][1] = l.bytes[l.start:l.pos]
 		l.discard()
 
+		if l.eof() {
+			return lexWhiteSpace // TODO maybe should return an EOF stateFn
+		}
+		
 		// check for another attr
 		if l.bytes[l.pos] == '[' {
 			l.discard()
@@ -457,4 +474,3 @@ func lexText(l *Lexer) stateFn {
 	}
 	return lexText
 }
-

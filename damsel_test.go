@@ -8,6 +8,13 @@ import (
 	"testing"
 )
 
+func TestAttrMultiline(t *testing.T) {
+	s := "%html %body\n  %div[a=1]\n      [b=2]\n      [c=3]"
+	r := LexerParse([]byte(s), "").String()
+	fmt.Println(s)
+	fmt.Println(r)
+}
+
 var TestsDir = "tests"
 
 func get_html(t *testing.T, s string) string {
