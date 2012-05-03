@@ -16,10 +16,11 @@ Calling damsel.ParseFile(filename string) will automatically parse the template,
   %html %body
     %table {range .}
       %tr {range .}
+        %td {.}
+        \{end}
       \{end}
-    \{end}
 
-While {end} is currently required, in the future this should hopefully be lifted. Also note the escape before {end} is relevant for multiline plain text, for example
+While {end} is currently required, in the future this should be take care of by damsel automatically. Also note the escape before {end} is only relevant for multiline plain text, for example
 
 ::
 
