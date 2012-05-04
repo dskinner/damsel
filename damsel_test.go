@@ -9,7 +9,7 @@ import (
 )
 
 func TestAttrMultiline(t *testing.T) {
-	s := "%html %body\n  %div[a=1]\n      [b=2]\n      [c=3]"
+	s := "%html %body\n\t%div[a=1]\n\t\t[b=2]\n\t\t[c=3]\n\t\t%div"
 	r := LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)
