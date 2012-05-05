@@ -8,6 +8,12 @@ import (
 	"testing"
 )
 
+func TestImpliedEnd(t *testing.T) {
+	b, _ := ioutil.ReadFile(filepath.Join(TestsDir, "bigtable_noend.dmsl"))
+	r := LexerParse(b, "").String()
+	fmt.Println(r)
+}
+
 func TestAttrMultiline(t *testing.T) {
 	s := "%html %body\n\t%div[a=1]\n\t\t[b=2]\n\t\t[c=3]\n\t\t%div"
 	r := LexerParse([]byte(s), "").String()

@@ -1,5 +1,3 @@
 %table {range .}
     %tr {range .}
         %td {.}
-        \{end}
-    \{end}

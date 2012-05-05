@@ -1,0 +1,9 @@
+%table {range .}
+	{if .}
+	%tr {range .}
+		%td {.}
+	{else}
+	%tr {range .}
+		%td {.}
+	{end}
+	%p Hello

@@ -20,6 +20,7 @@ type Elem struct {
 	attr     [][][]byte
 	text     []byte
 	tail     []byte
+	actionEnds int
 }
 
 func (el *Elem) SubElement() *Elem {
@@ -90,6 +91,9 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 		child.ToString(buf)
 	}
 
+	for i := 0; i < el.actionEnds; i++ {
+		buf.WriteString("{end}")
+	}
 	buf.WriteRune(LeftCarrot)
 	buf.WriteRune(Slash)
 	buf.Write(el.tag)

@@ -61,6 +61,7 @@ type Lexer struct {
 	state stateFn
 	pos   int
 	start int
+	action []byte
 
 	tmplDir string
 	textWs  float64
@@ -86,6 +87,10 @@ func (l *Lexer) Start() {
 
 func (l *Lexer) next() {
 	l.pos++
+}
+
+func (l *Lexer) reset() {
+	l.start = l.pos
 }
 
 func (l *Lexer) rune() rune {
@@ -156,13 +161,14 @@ func lexWhiteSpace(l *Lexer) stateFn {
 	case '[': // continued attr
 		l.discard()
 		return lexAttributeKey
+	case '{':
+		l.textWs = float64(l.pos - l.start)
+		l.reset()
+		return lexText
 	case '\\':
 		l.textWs = float64(l.pos - l.start)
 		l.discard()
 		return lexText
-	case '{': // TODO use the configured delimiter!!!
-		l.discard()
-		return lexAction
 	case eof:
 		return nil
 	default:
@@ -349,6 +355,8 @@ func lexText(l *Lexer) stateFn {
 		l.discard()
 		l.prevWs = l.curWs
 		return lexWhiteSpace
+	case '{':
+		return lexActionText
 	case eof:
 		l.AppendText()
 		return nil
@@ -359,24 +367,64 @@ func lexText(l *Lexer) stateFn {
 	return lexText
 }
 
-func lexAction(l *Lexer) stateFn {
+func lexActionText(l *Lexer) stateFn {
+	l.action = append(l.action, l.bytes[l.pos])
 	switch l.rune() {
 	case '}':
+		f := handleAction(l)
+		l.action = []byte{}
+		return f
+	case eof:
+		return nil // TODO handle eof during unfinished action
+	default:
 		l.next()
-		s := string(l.bytes[l.start:l.pos])
-		if strings.HasPrefix(s, "extends") {
-			s2 := strings.Split(s, "\"")[1]
-			bytes := Open(s2, l.tmplDir) // TODO use the configured template dir!!!
-			l.bytes = append(l.bytes[:l.pos], append(bytes, l.bytes[l.pos:]...)...)
-		}
-		// TODO implement include, will probably be slow due to needing to loop through and insert l.curWs after every line break, before insert into l.bytes
-		l.start = l.pos
-		return lexWhiteSpace
+	}
+	return lexActionText
+}
+
+func lexAction(l *Lexer) stateFn {
+	l.action = append(l.action, l.bytes[l.pos])
+	switch l.rune() {
+	case '}':
+		f := handleAction(l)
+		l.action = []byte{}
+		return f
 	case eof:
 		return nil // TODO handle eof during unfinished action
 	default:
 		l.next()
 	}
 	return lexAction
+}
+
+// TODO implement include, will probably be slow due to needing to loop through and insert l.curWs after every line break, before insert into l.bytes
+func handleAction(l *Lexer) stateFn {
+	s := string(l.action)
+	switch {
+	case strings.HasPrefix(s, "{extends ") || strings.HasPrefix(s, "extends "):
+		l.next()
+		s2 := strings.Split(s, "\"")[1]
+		bytes := Open(s2, l.tmplDir) // TODO use the configured template dir!!!
+		l.bytes = append(l.bytes[:l.pos], append(bytes, l.bytes[l.pos:]...)...)
+		l.start = l.pos
+		return lexWhiteSpace
+	case strings.HasPrefix(s, "{range "):
+		l.curElem.actionEnds++
+		return lexText
+	case strings.HasPrefix(s, "{if "):
+		l.curElem.actionEnds++
+		return lexText
+	case s == "{end}":
+		if l.textWs > l.prevWs {
+			l.cache[l.prevWs].actionEnds--
+		} else if l.textWs == l.prevWs {
+			l.cache[l.prevWs].parent.actionEnds--
+		} else if l.textWs < l.prevWs { // TODO this may be wrong, refer to other areas in code for how this is done
+			l.cache[l.textWs].parent.actionEnds--
+		}
+		return lexText
+	}
+	// 
+	return lexText
 }
 
