@@ -37,7 +37,7 @@ import (
 )
 
 func main() {
-	t := dmsl.ParseFile("path/to/file")
+  t := dmsl.ParseFile("path/to/file")
   fmt.Println(t.Execute(nil))
 }
 
@@ -116,7 +116,7 @@ The use of ! as a block element, causing %ul to become inlined will cause the en
 
 ```
 %html %body
-	!
+  !
     %h1 Hello World
 ```
 
