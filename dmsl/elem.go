@@ -1,4 +1,4 @@
-package main
+package dmsl
 
 import "bytes"
 
@@ -9,6 +9,8 @@ const (
 	Space       = ' '
 	Equal       = '='
 	Quote       = '"'
+	Exclamation = '!'
+	Hyphen      = '-'
 )
 
 type Elem struct {
@@ -21,6 +23,27 @@ type Elem struct {
 	text     []byte
 	tail     []byte
 	actionEnds int
+	// TODO use Comment struct
+	isComment bool
+}
+
+type Comment struct {
+	Elem
+}
+
+func (el *Comment) ToString(buf *bytes.Buffer) {
+	buf.WriteRune(LeftCarrot)
+	buf.WriteRune(Exclamation)
+	buf.WriteRune(Hyphen)
+	buf.WriteRune(Hyphen)
+	
+	for _, child := range el.children {
+		child.ToString(buf)
+	}
+	
+	buf.WriteRune(Hyphen)
+	buf.WriteRune(Hyphen)
+	buf.WriteRune(RightCarrot)
 }
 
 func (el *Elem) SubElement() *Elem {
@@ -40,6 +63,22 @@ func (el *Elem) String() string {
 
 func (el *Elem) ToString(buf *bytes.Buffer) {
 
+	// TODO use Comment struct in parser
+	if el.isComment {
+		buf.WriteRune(LeftCarrot)
+		buf.WriteRune(Exclamation)
+		buf.WriteRune(Hyphen)
+		buf.WriteRune(Hyphen)
+		
+		for _, child := range el.children {
+			child.ToString(buf)
+		}
+		
+		buf.WriteRune(Hyphen)
+		buf.WriteRune(Hyphen)
+		buf.WriteRune(RightCarrot)
+		return
+	}
 	// TODO probably no need to make a new map for each subelement all the time
 	keys := make(map[string]bool)
 

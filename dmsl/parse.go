@@ -1,4 +1,4 @@
-package main
+package dmsl
 
 import (
 	"io/ioutil"
@@ -234,6 +234,9 @@ func lexHash(l *Lexer) stateFn {
 	case '.':
 		l.discard()
 		return lexHashClass(l)
+	case '!':
+		l.discard()
+		l.curElem.isComment = true
 	case '[':
 		l.discard()
 		return lexAttributeKey

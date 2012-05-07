@@ -1,4 +1,4 @@
-package main
+package dmsl
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func TestImpliedEnd(t *testing.T) {
 }
 
 func TestAttrMultiline(t *testing.T) {
-	s := "%html %body\n\t%div[a=1]\n\t\t[b=2]\n\t\t[c=3]\n\t\t%div"
+	s := "%html %body\n\t! %div\n\t\t[a=1]\n\t\t[b=2]\n\t\t[c=3]\n\t\t%div"
 	r := LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)

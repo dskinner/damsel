@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/dskinner/damsel/dmsl"
 	"flag"
 	"fmt"
 )
@@ -27,7 +28,7 @@ func main() {
 		*/
 		fmt.Println("debug does nothing atm")
 	} else {
-		t := ParseFile(filename)
+		t := dmsl.ParseFile(filename)
 		fmt.Println(t.Execute(nil))
 	}
 }
