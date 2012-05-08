@@ -168,7 +168,8 @@ The use of ! as a block element, causing %ul to become inlined will cause the en
 
 ### Filters
 
-There is basic support for filters (still undergoing testing).
+There is basic support for filters (still undergoing testing). A filter in damsel is just another way of calling a function
+while also preserving indention of the inner content lines making this suitable for parsing other indention based markup.
 
 ```
 %html
@@ -181,7 +182,7 @@ There is basic support for filters (still undergoing testing).
 		#content Hello
 ```
 
-This is currently implemented by piggy backing on the extended funcMap of html/template.Template. Damsel transforms the above into
+This is currently implemented via the extended funcMap of html/template.Template. Damsel transforms the above into
 
 ```
 %html
@@ -192,7 +193,7 @@ This is currently implemented by piggy backing on the extended funcMap of html/t
 		#content Hello
 ```
 
-A css function is available in damsel that pieces together the links for output when Execute is called. Added your own functions to the html/template funcMap will allow you to use it as a filter.
+A css (and js) function is available in damsel that pieces together the items appropriately for output when Execute is called. Added your own functions to the html/template funcMap will allow you to use it as a filter.
 The following function signature is suggested:
 
 ```
@@ -200,8 +201,6 @@ func myFilter(args string, content... string) string {
 	// ...
 }
 ```
-
-Note in addition that any extra indention after the first content line is preserved, making this suitable for parsing other indention based markups.
 
 ### More Examples
 For more exmaples, refer to the templates under /tests or read http://dmsl.dasa.cc for a general idea (minus all the python parts)
