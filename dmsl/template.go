@@ -90,8 +90,8 @@ func (t *Template) ParseFile(filename string) *Template {
 	return t
 }
 
-func (t *Template) Execute(data interface{}) string {
+func (t *Template) Execute(data interface{}) (string, error) {
 	buf := &bytes.Buffer{}
-	t.html.Execute(buf, data)
-	return DocType + buf.String()
+	err := t.html.Execute(buf, data)
+	return DocType + buf.String(), err
 }

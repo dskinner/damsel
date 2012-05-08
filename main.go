@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/dskinner/damsel/dmsl"
 	"flag"
 	"fmt"
+	"github.com/dskinner/damsel/dmsl"
 )
 
 func main() {
@@ -26,9 +26,14 @@ func main() {
 				fmt.Println(l)
 			}
 		*/
-		fmt.Println("debug does nothing atm")
+		fmt.Println(dmsl.LexerParse(dmsl.Open(filename, ""), "").String())
 	} else {
 		t := dmsl.ParseFile(filename)
-		fmt.Println(t.Execute(nil))
+		result, err := t.Execute(nil)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(result)
+		}
 	}
 }

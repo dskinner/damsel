@@ -14,14 +14,14 @@ const (
 )
 
 type Elem struct {
-	parent   *Elem
-	children []*Elem
-	tag      []byte
-	id       []byte
-	class    [][]byte
-	attr     [][][]byte
-	text     []byte
-	tail     []byte
+	parent     *Elem
+	children   []*Elem
+	tag        []byte
+	id         []byte
+	class      [][]byte
+	attr       [][][]byte
+	text       []byte
+	tail       []byte
 	actionEnds int
 	// TODO use Comment struct
 	isComment bool
@@ -36,11 +36,11 @@ func (el *Comment) ToString(buf *bytes.Buffer) {
 	buf.WriteRune(Exclamation)
 	buf.WriteRune(Hyphen)
 	buf.WriteRune(Hyphen)
-	
+
 	for _, child := range el.children {
 		child.ToString(buf)
 	}
-	
+
 	buf.WriteRune(Hyphen)
 	buf.WriteRune(Hyphen)
 	buf.WriteRune(RightCarrot)
@@ -69,11 +69,13 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 		buf.WriteRune(Exclamation)
 		buf.WriteRune(Hyphen)
 		buf.WriteRune(Hyphen)
-		
+
+		buf.Write(el.text)
+
 		for _, child := range el.children {
 			child.ToString(buf)
 		}
-		
+
 		buf.WriteRune(Hyphen)
 		buf.WriteRune(Hyphen)
 		buf.WriteRune(RightCarrot)
@@ -139,4 +141,3 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 	buf.WriteRune(RightCarrot)
 	buf.Write(el.tail)
 }
-

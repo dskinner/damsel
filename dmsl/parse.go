@@ -57,10 +57,10 @@ func LexerParse(bytes []byte, tmplDir string) *Elem {
 type stateFn func(*Lexer) stateFn
 
 type Lexer struct {
-	bytes []byte
-	state stateFn
-	pos   int
-	start int
+	bytes  []byte
+	state  stateFn
+	pos    int
+	start  int
 	action []byte
 
 	tmplDir string
@@ -135,11 +135,11 @@ func (l *Lexer) getBytes() []byte {
 }
 
 func (l *Lexer) AppendText() {
-	if l.textWs == 0 || l.textWs > l.prevWs {
+	if l.textWs == 0 || l.textWs > l.curWs {
 		l.curElem.text = append(l.curElem.text, l.getBytes()...)
-	} else if l.textWs == l.prevWs {
+	} else if l.textWs == l.curWs {
 		l.curElem.tail = append(l.curElem.tail, l.getBytes()...)
-	} else if l.textWs < l.prevWs {
+	} else if l.textWs < l.curWs {
 		l.cache[l.textWs].tail = append(l.cache[l.textWs].tail, l.getBytes()...)
 	}
 }
@@ -158,69 +158,58 @@ func lexWhiteSpace(l *Lexer) stateFn {
 	case '\n':
 		l.discard()
 		break
-	case '[': // continued attr
+	case '[':
 		l.discard()
 		return lexAttributeKey
-	case '{':
-		l.textWs = float64(l.pos - l.start)
-		l.reset()
-		return lexText
-	case '\\':
-		l.textWs = float64(l.pos - l.start)
+	case '/':
 		l.discard()
-		return lexText
+		return lexComment
+	case '%', '#', '.', '!':
+
+		if l.start == 0 || rune(l.bytes[l.start-1]) == '\n' {
+			l.prevWs = l.curWs
+			l.curWs = float64(l.pos - l.start)
+		} else { // handle inline
+			l.prevWs = l.curWs
+			l.curWs += 0.5 // inlines get ws++ to nest under prev elem
+		}
+
+		l.NewElem()
+		return lexHash
+
 	case eof:
 		return nil
 	default:
-		l.curWs = float64(l.pos - l.start)
-		l.start = l.pos
-		l.NewElem()
-		return lexHash
+		// handle text
+		if l.start != 0 && rune(l.bytes[l.start-1]) != '\n' {
+			l.textWs = 0
+		} else { // multiline text
+			l.textWs = float64(l.pos - l.start)
+		}
+
+		if l.rune() == '\\' {
+			l.discard()
+		}
+
+		l.reset()
+		return lexText
 	}
+
 	return lexWhiteSpace
 }
 
-func lexHashTag(l *Lexer) stateFn {
+func lexComment(l *Lexer) stateFn {
 	switch l.rune() {
-	case '#', '.', '[', ' ', '\t', '\n':
-		l.curElem.tag = l.bytes[l.start:l.pos]
-		return lexHash
+	case '\n':
+		l.discard()
+		return lexWhiteSpace
 	case eof:
-		l.curElem.tag = l.bytes[l.start:l.pos]
 		return nil
 	default:
 		l.next()
 	}
-	return lexHashTag
-}
 
-func lexHashId(l *Lexer) stateFn {
-	switch l.rune() {
-	case '#', '.', '[', ' ', '\t', '\n':
-		l.curElem.id = l.bytes[l.start:l.pos]
-		l.ids[string(l.curElem.id)] = append(l.ids[string(l.curElem.id)], l.curElem)
-		return lexHash
-	case eof:
-		l.curElem.id = l.bytes[l.start:l.pos]
-		return nil
-	default:
-		l.next()
-	}
-	return lexHashId
-}
-
-func lexHashClass(l *Lexer) stateFn {
-	switch l.rune() {
-	case '#', '.', '[', ' ', '\t', '\n':
-		l.curElem.class = append(l.curElem.class, l.bytes[l.start:l.pos])
-		return lexHash
-	case eof:
-		l.curElem.class = append(l.curElem.class, l.bytes[l.start:l.pos])
-		return nil
-	default:
-		l.next()
-	}
-	return lexHashClass
+	return lexComment
 }
 
 func lexHash(l *Lexer) stateFn {
@@ -237,33 +226,45 @@ func lexHash(l *Lexer) stateFn {
 	case '!':
 		l.discard()
 		l.curElem.isComment = true
-	case '[':
-		l.discard()
-		return lexAttributeKey
-	case ' ', '\t':
-		// check for inlined tag
-		l.discard()
-		
-		switch l.rune() {
-		case '.', '#', '%':
-			l.prevWs = l.curWs
-			l.curWs += 0.5 // inlines get ws++ to nest under prev elem
-			l.NewElem()
-			return lexHash
-		case eof:
-			return nil
-		}
-		
-		l.textWs = 0 // this isn't multiline text, so 0
-		return lexText
-	case '\n':
-		l.discard()
-		l.prevWs = l.curWs
 		return lexWhiteSpace
+	default:
+		return lexWhiteSpace
+	}
+	return lexHash
+}
+
+func lexHashTag(l *Lexer) stateFn {
+	switch l.rune() {
+	case '#', '.', '[', ' ', '\t', '\n', eof:
+		l.curElem.tag = l.bytes[l.start:l.pos]
+		return lexHash
 	default:
 		l.next()
 	}
-	return lexHash
+	return lexHashTag
+}
+
+func lexHashId(l *Lexer) stateFn {
+	switch l.rune() {
+	case '#', '.', '[', ' ', '\t', '\n', eof: // TODO technically there should never be multiple ids, and damsel should be strict regarding this due to extends
+		l.curElem.id = l.bytes[l.start:l.pos]
+		l.ids[string(l.curElem.id)] = append(l.ids[string(l.curElem.id)], l.curElem)
+		return lexHash
+	default:
+		l.next()
+	}
+	return lexHashId
+}
+
+func lexHashClass(l *Lexer) stateFn {
+	switch l.rune() {
+	case '#', '.', '[', ' ', '\t', '\n', eof:
+		l.curElem.class = append(l.curElem.class, l.bytes[l.start:l.pos])
+		return lexHash
+	default:
+		l.next()
+	}
+	return lexHashClass
 }
 
 func lexAttributeKey(l *Lexer) stateFn {
@@ -271,80 +272,53 @@ func lexAttributeKey(l *Lexer) stateFn {
 	case '=':
 		l.AppendAttrKey()
 		l.discard()
+
+		// check for literal value
+		switch l.rune() {
+		case '\'', '"':
+			l.next()
+			return lexAttributeValueLiteral
+		}
+
 		return lexAttributeValue
 	case ']':
 		l.AppendAttrKey()
 		l.discard()
-		
-		// the order of the following two switch statements matter
-		
-		switch rune(l.bytes[l.pos]) {
-		case eof:
-			return lexWhiteSpace // TODO maybe should return an eof stateFn
-		case '[':
-			l.discard()
-			return lexAttributeKey
-		case '\n':
-			l.discard()
-			return lexWhiteSpace
-		}
-		
-		// check if inline tag
-		switch l.peek() {
-		case '%', '#', '.':
-			l.discard()
-			l.NewElem()
-			return lexHash
-		}
-		
-		// should be text TODO should-be?!
-		l.discard()
-		l.textWs = 0 // not multiline text, so 0
-		return lexText
+		return lexWhiteSpace
 	default:
 		l.next()
 	}
 	return lexAttributeKey
 }
 
+func lexAttributeValueLiteral(l *Lexer) stateFn {
+	switch l.rune() {
+	case rune(l.bytes[l.start]):
+		if l.bytes[l.pos-1] == '\\' { // check for escaped quote
+			l.next()
+			break
+		} else {
+			return lexAttributeValue
+		}
+	default:
+		l.next()
+	}
+	return lexAttributeValueLiteral
+}
+
 func lexAttributeValue(l *Lexer) stateFn {
-	// TODO string literals
 	switch l.rune() {
 	case ']':
-		l.curElem.attr[len(l.curElem.attr)-1][1] = l.bytes[l.start:l.pos]
+		// was this a string literal?
+		switch rune(l.bytes[l.start]) {
+		case '\'', '"':
+			l.curElem.attr[len(l.curElem.attr)-1][1] = l.bytes[l.start+1 : l.pos-1]
+		default:
+			l.curElem.attr[len(l.curElem.attr)-1][1] = l.bytes[l.start:l.pos]
+		}
 		l.discard()
-		
-		switch l.rune() {
-		case '[': // check for another attr
-			l.discard()
-			return lexAttributeKey
-		case eof:
-			return nil
-		}
 
-		// TODO maybe quicker to just skip lexText and jump straight to lexWhiteSpace
-		// check for end of line
-		//if l.bytes[l.pos] == '\n' {
-		//	l.discard()
-		//	return lexWhiteSpace
-		//}
-
-		// check if inline tag
-		switch l.peek() {
-		case '%', '#', '.':
-			l.discard()
-			l.NewElem()
-			return lexHash
-		case eof:
-			return nil
-		}
-
-		// should be text or newline
-		if l.rune() != '\n' {
-			l.discard()
-		}
-		l.textWs = 0 // not multiline text, so 0
-		return lexText
+		return lexWhiteSpace
 	default:
 		l.next()
 	}
@@ -356,7 +330,6 @@ func lexText(l *Lexer) stateFn {
 	case '\n':
 		l.AppendText()
 		l.discard()
-		l.prevWs = l.curWs
 		return lexWhiteSpace
 	case '{':
 		return lexActionText
@@ -366,7 +339,7 @@ func lexText(l *Lexer) stateFn {
 	default:
 		l.next()
 	}
-	
+
 	return lexText
 }
 
@@ -378,7 +351,7 @@ func lexActionText(l *Lexer) stateFn {
 		l.action = []byte{}
 		return f
 	case eof:
-		return nil // TODO handle eof during unfinished action
+		return nil
 	default:
 		l.next()
 	}
@@ -393,7 +366,7 @@ func lexAction(l *Lexer) stateFn {
 		l.action = []byte{}
 		return f
 	case eof:
-		return nil // TODO handle eof during unfinished action
+		return nil
 	default:
 		l.next()
 	}
@@ -407,7 +380,7 @@ func handleAction(l *Lexer) stateFn {
 	case strings.HasPrefix(s, "{extends ") || strings.HasPrefix(s, "extends "):
 		l.next()
 		s2 := strings.Split(s, "\"")[1]
-		bytes := Open(s2, l.tmplDir) // TODO use the configured template dir!!!
+		bytes := append([]byte{'\n'}, Open(s2, l.tmplDir)...)
 		l.bytes = append(l.bytes[:l.pos], append(bytes, l.bytes[l.pos:]...)...)
 		l.start = l.pos
 		return lexWhiteSpace
@@ -430,4 +403,3 @@ func handleAction(l *Lexer) stateFn {
 	// 
 	return lexText
 }
-

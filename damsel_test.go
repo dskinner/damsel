@@ -1,7 +1,8 @@
-package dmsl
+package main
 
 import (
 	"fmt"
+	"github.com/dskinner/damsel/dmsl"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -10,13 +11,13 @@ import (
 
 func TestImpliedEnd(t *testing.T) {
 	b, _ := ioutil.ReadFile(filepath.Join(TestsDir, "bigtable_noend.dmsl"))
-	r := LexerParse(b, "").String()
+	r := dmsl.LexerParse(b, "").String()
 	fmt.Println(r)
 }
 
 func TestAttrMultiline(t *testing.T) {
-	s := "%html %body\n\t! %div\n\t\t[a=1]\n\t\t[b=2]\n\t\t[c=3]\n\t\t%div"
-	r := LexerParse([]byte(s), "").String()
+	s := "%html %body\n\t! test\n\t\t%div    \\ hello\n\t\t\t[a=1]\n\t\t\t[b=\"2[2222]\"]\n\t\t\t[c=3]\n\t\t\t%div"
+	r := dmsl.LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)
 }
@@ -32,13 +33,14 @@ func get_html(t *testing.T, s string) string {
 }
 
 func test(t *testing.T, s string, data interface{}) {
-	TemplateDir = TestsDir
+	dmsl.TemplateDir = TestsDir
 	html := get_html(t, s)
-	tmpl := ParseFile(s + ".dmsl")
-	r := strings.TrimSpace(tmpl.Execute(data))
+	tmpl := dmsl.ParseFile(s + ".dmsl")
+	r, err := tmpl.Execute(data)
+	r = strings.TrimSpace(r)
 	if r != html {
 		fmt.Println("\nExpected\n========\n", html, "\nReceived\n========\n", r, "\n\n")
-		t.Fatal("parse failed:", s)
+		t.Fatal("parse failed:", s, "\n", err)
 	}
 }
 
@@ -92,7 +94,7 @@ func Benchmark_lex(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		LexerParse(bytes, TemplateDir).String()
+		dmsl.LexerParse(bytes, dmsl.TemplateDir).String()
 	}
 }
 
@@ -104,7 +106,7 @@ func Benchmark_bigtable_dmsl(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		Parse(bytes)
+		dmsl.Parse(bytes)
 	}
 }
 
@@ -115,7 +117,7 @@ func Benchmark_bigtable_go(b *testing.B) {
 		b.Fatal(err)
 	}
 	table := [1000][10]int{}
-	tmpl := Parse(bytes)
+	tmpl := dmsl.Parse(bytes)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		tmpl.Execute(table)
@@ -131,7 +133,7 @@ func Benchmark_bigtable_all(b *testing.B) {
 	table := [1000][10]int{}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		Parse(bytes).Execute(table)
+		dmsl.Parse(bytes).Execute(table)
 	}
 }
 
@@ -143,6 +145,6 @@ func Benchmark_bigtable2(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		Parse(bytes)
+		dmsl.Parse(bytes)
 	}
 }
