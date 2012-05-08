@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"bytes"
 )
 
 func Open(filename string, dir string) []byte {
@@ -54,6 +55,15 @@ func LexerParse(bytes []byte, tmplDir string) *Elem {
 	return lexer.root.children[0]
 }
 
+type Filter struct {
+	start   int
+	name    []byte
+	args    []byte
+	content [][]byte
+	ws      float64
+	contentWs float64
+}
+
 type stateFn func(*Lexer) stateFn
 
 type Lexer struct {
@@ -71,6 +81,8 @@ type Lexer struct {
 	curElem *Elem
 	ids     map[string][]*Elem
 	cache   map[float64]*Elem
+	
+	filter *Filter
 }
 
 func (l *Lexer) Start() {
@@ -164,6 +176,10 @@ func lexWhiteSpace(l *Lexer) stateFn {
 	case '/':
 		l.discard()
 		return lexComment
+	case ':':
+		l.filter = &Filter{start: l.pos, ws: float64(l.pos-l.start)}
+		l.discard()
+		return lexFilter
 	case '%', '#', '.', '!':
 
 		if l.start == 0 || rune(l.bytes[l.start-1]) == '\n' {
@@ -196,6 +212,91 @@ func lexWhiteSpace(l *Lexer) stateFn {
 	}
 
 	return lexWhiteSpace
+}
+
+// lexFilter stands alone for parsing, not mingling with lexWhiteSpace until
+// it's completely finished.
+func lexFilter(l *Lexer) stateFn {
+	switch l.rune() {
+	case ' ', '\t':
+		l.filter.name = l.getBytes()
+		l.discard()
+		return lexFilterArgs
+	case '\n':
+		l.filter.name = l.getBytes()
+		l.discard()
+		return lexFilterContent
+	case eof:
+		return nil
+	default:
+		l.next()
+	}
+	return lexFilter
+}
+
+func lexFilterArgs(l *Lexer) stateFn {
+	switch l.rune() {
+	case '\n':
+		l.filter.args = l.getBytes()
+		l.discard()
+		return lexFilterContent
+	case eof:
+		return nil
+	default:
+		l.next()
+	}
+	return lexFilterArgs
+}
+
+func lexFilterWhiteSpace(l *Lexer) stateFn {
+	return lexFilterWhiteSpace
+}
+
+func lexFilterContent(l *Lexer) stateFn {
+	switch l.rune() {
+	case ' ', '\t':
+		l.next()
+		break
+	case '\n':
+		l.filter.content = append(l.filter.content, l.bytes[l.start+int(l.filter.contentWs):l.pos])
+		l.discard()
+		break
+	default:
+		// TODO use lexFilterWhiteSpace so we aren't checking this all the time
+		if l.filter.contentWs == 0 {
+			l.filter.contentWs = float64(l.pos - l.start)
+		}
+		
+		if float64(l.pos - l.start) < l.filter.ws {
+			
+			var b bytes.Buffer
+			b.WriteRune('{')
+			b.Write(l.filter.name)
+			b.WriteString(" \"")
+			b.Write(l.filter.args)
+			b.WriteRune('"')
+			for _, content := range l.filter.content {
+				b.WriteRune(' ')
+				b.WriteRune('"')
+				b.Write(content)
+				b.WriteRune('"')
+			}
+			b.WriteRune('}')
+			
+			if l.filter.ws == 0 || l.filter.ws > l.curWs {
+				l.curElem.text = append(l.curElem.text, b.Bytes()...)
+			} else if l.filter.ws == l.curWs {
+				l.curElem.tail = append(l.curElem.tail, b.Bytes()...)
+			} else if l.filter.ws < l.curWs {
+				l.cache[l.textWs].tail = append(l.cache[l.textWs].tail, b.Bytes()...)
+			}
+			
+			return lexWhiteSpace
+		}
+		
+		l.next()
+	}
+	return lexFilterContent
 }
 
 func lexComment(l *Lexer) stateFn {

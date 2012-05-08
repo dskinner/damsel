@@ -16,10 +16,23 @@ func TestImpliedEnd(t *testing.T) {
 }
 
 func TestAttrMultiline(t *testing.T) {
-	s := "%html %body\n\t! test\n\t\t%div    \\ hello\n\t\t\t[a=1]\n\t\t\t[b=\"2[2222]\"]\n\t\t\t[c=3]\n\t\t\t%div"
+	s := `
+%html
+	%head
+		%title Hello
+		:css /css/
+			main.css
+			other.css
+			somemore.css
+	%body
+		%div Hello
+	`
 	r := dmsl.LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)
+	
+	tmpl, err := dmsl.Parse([]byte(s)).Execute(nil)
+	fmt.Println(tmpl, err)
 }
 
 var TestsDir = "tests"

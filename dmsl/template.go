@@ -20,18 +20,18 @@ func Delims(l, r string) {
 	RightDelim = r
 }
 
-func js(files ...string) template.HTML {
+func js(root string, files ...string) template.HTML {
 	s := ""
 	for _, v := range files {
-		s += "<script type=\"text/javascript\" src=\"" + v + "\"/>"
+		s += "<script type=\"text/javascript\" src=\"" + root + v + "\"/>"
 	}
 	return template.HTML(s)
 }
 
-func css(files ...string) template.HTML {
+func css(root string, files ...string) template.HTML {
 	s := ""
 	for _, v := range files {
-		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + v + "\">"
+		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + root + v + "\">"
 	}
 	return template.HTML(s)
 }

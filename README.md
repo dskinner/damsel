@@ -166,5 +166,42 @@ The use of ! as a block element, causing %ul to become inlined will cause the en
 		%span Hello World
 ```
 
+### Filters
+
+There is basic support for filters (still undergoing testing).
+
+```
+%html
+	%head
+		%title Hello
+		:css /css/
+			main.css
+			extra.css
+	%body
+		#content Hello
+```
+
+This is currently implemented by piggy backing on the extended funcMap of html/template.Template. Damsel transforms the above into
+
+```
+%html
+	%head
+		%title Hello
+		{css "/css/" "main.css" "extra.css"}
+	%body
+		#content Hello
+```
+
+A css function is available in damsel that pieces together the links for output when Execute is called. Added your own functions to the html/template funcMap will allow you to use it as a filter.
+The following function signature is suggested:
+
+```
+func myFilter(args string, content... string) string {
+	// ...
+}
+```
+
+Note in addition that any extra indention after the first content line is preserved, making this suitable for parsing other indention based markups.
+
 ### More Examples
 For more exmaples, refer to the templates under /tests or read http://dmsl.dasa.cc for a general idea (minus all the python parts)
