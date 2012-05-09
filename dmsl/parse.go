@@ -5,8 +5,33 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
-	"bytes"
 )
+
+func js(root []byte, files ...[]byte) string {
+	s := ""
+	for _, v := range files {
+		s += "<script type=\"text/javascript\" src=\"" + string(root) + string(v) + "\"/>"
+	}
+	//return template.HTML(s)
+	return s
+}
+
+func css(root []byte, files ...[]byte) string {
+	s := ""
+	for _, v := range files {
+		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(root) + string(v) + "\">"
+	}
+	//return template.HTML(s)
+	return s
+}
+
+func extends(filename []byte, content ...[]byte) string {
+	bytes := Open(string(filename), "tests")
+	return string(bytes)
+}
+
+type filterFn func([]byte, ...[]byte) string
+type FuncMap map[string]filterFn
 
 func Open(filename string, dir string) []byte {
 	b, err := ioutil.ReadFile(filepath.Join(dir, filename))
@@ -56,11 +81,11 @@ func LexerParse(bytes []byte, tmplDir string) *Elem {
 }
 
 type Filter struct {
-	start   int
-	name    []byte
-	args    []byte
-	content [][]byte
-	ws      float64
+	start     int
+	name      []byte
+	args      []byte
+	content   [][]byte
+	ws        float64
 	contentWs float64
 }
 
@@ -83,9 +108,15 @@ type Lexer struct {
 	cache   map[float64]*Elem
 	
 	filter *Filter
+	funcMap FuncMap
 }
 
 func (l *Lexer) Start() {
+	l.funcMap = FuncMap {
+		"js": js,
+		"css": css,
+		"extends": extends,
+	}
 	l.state = lexWhiteSpace
 	l.root = new(Elem)
 	l.root.tag = []byte("root")
@@ -249,6 +280,12 @@ func lexFilterArgs(l *Lexer) stateFn {
 }
 
 func lexFilterWhiteSpace(l *Lexer) stateFn {
+	switch l.rune() {
+		case ' ', '\t':
+			l.next()
+		case '\n':
+			break
+	}
 	return lexFilterWhiteSpace
 }
 
@@ -267,29 +304,18 @@ func lexFilterContent(l *Lexer) stateFn {
 			l.filter.contentWs = float64(l.pos - l.start)
 		}
 		
-		if float64(l.pos - l.start) < l.filter.ws {
+		if float64(l.pos - l.start) <= l.filter.ws {
 			
-			var b bytes.Buffer
-			b.WriteRune('{')
-			b.Write(l.filter.name)
-			b.WriteString(" \"")
-			b.Write(l.filter.args)
-			b.WriteRune('"')
-			for _, content := range l.filter.content {
-				b.WriteRune(' ')
-				b.WriteRune('"')
-				b.Write(content)
-				b.WriteRune('"')
-			}
-			b.WriteRune('}')
+			// TODO check that l.filter.name is actually in funcMap
+			result := l.funcMap[string(l.filter.name)](l.filter.args, l.filter.content...)
+			b := []byte(result)
 			
-			if l.filter.ws == 0 || l.filter.ws > l.curWs {
-				l.curElem.text = append(l.curElem.text, b.Bytes()...)
-			} else if l.filter.ws == l.curWs {
-				l.curElem.tail = append(l.curElem.tail, b.Bytes()...)
-			} else if l.filter.ws < l.curWs {
-				l.cache[l.textWs].tail = append(l.cache[l.textWs].tail, b.Bytes()...)
-			}
+			// need to evaluate filterFn result against normal lexing
+			l.bytes = append(l.bytes[:l.filter.start], append(b, l.bytes[l.start-1:]...)...)
+			// reset pos to delete/insert point for lexer
+			l.pos = l.filter.start
+			// reset start point to beginning of line
+			l.start = l.pos-int(l.filter.ws)
 			
 			return lexWhiteSpace
 		}

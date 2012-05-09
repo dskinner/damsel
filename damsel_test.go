@@ -16,6 +16,7 @@ func TestImpliedEnd(t *testing.T) {
 }
 
 func TestAttrMultiline(t *testing.T) {
+	
 	s := `
 %html
 	%head
@@ -27,6 +28,16 @@ func TestAttrMultiline(t *testing.T) {
 	%body
 		%div Hello
 	`
+/*
+	s := `
+:extends overlay.dmsl
+
+#content
+	%p Woot
+	%p Bird
+	<a href="asdf">asdf</a>
+	`
+	*/
 	r := dmsl.LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)

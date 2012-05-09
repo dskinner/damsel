@@ -168,8 +168,10 @@ The use of ! as a block element, causing %ul to become inlined will cause the en
 
 ### Filters
 
-There is basic support for filters (still undergoing testing). A filter in damsel is just another way of calling a function
-while also preserving indention of the inner content lines making this suitable for parsing other indention based markup.
+There is basic support for filters (still undergoing testing and changes). A filter in damsel is just another way of calling a function
+while also preserving indention of the inner content lines making this suitable for parsing other indention based markup. Once a filter
+has been processed, the lexer will parse the result, allowing for {actions}, damsel, syntax, or even a filter that returns a filter (which is utter madness).
+In time, a damsel template will facilitate custom functions, but included at the moment are js, css, and extends.
 
 ```
 %html
@@ -182,24 +184,16 @@ while also preserving indention of the inner content lines making this suitable 
 		#content Hello
 ```
 
-This is currently implemented via the extended funcMap of html/template.Template. Damsel transforms the above into
+This would be the same as typing it out:
 
 ```
 %html
 	%head
 		%title Hello
-		{css "/css/" "main.css" "extra.css"}
+		%link[type=text/css][rel=stylesheet][href=/css/main.css]
+		%link[type=text/css][rel=stylesheet][href=/css/extra.css]
 	%body
 		#content Hello
-```
-
-A css (and js) function is available in damsel that pieces together the items appropriately for output when Execute is called. Added your own functions to the html/template funcMap will allow you to use it as a filter.
-The following function signature is suggested:
-
-```
-func myFilter(args string, content... string) string {
-	// ...
-}
 ```
 
 ### More Examples

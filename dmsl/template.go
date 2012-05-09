@@ -20,6 +20,7 @@ func Delims(l, r string) {
 	RightDelim = r
 }
 
+/*
 func js(root string, files ...string) template.HTML {
 	s := ""
 	for _, v := range files {
@@ -35,6 +36,7 @@ func css(root string, files ...string) template.HTML {
 	}
 	return template.HTML(s)
 }
+*/
 
 var TemplateFuncMap = template.FuncMap{
 	"js":  js,
@@ -51,7 +53,7 @@ type Template struct {
 
 func New() *Template {
 	t := &Template{}
-	t.html = template.New("").Delims(LeftDelim, RightDelim).Funcs(TemplateFuncMap)
+	t.html = template.New("").Delims(LeftDelim, RightDelim)//.Funcs(TemplateFuncMap)
 	return t
 }
 
