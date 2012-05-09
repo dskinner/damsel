@@ -11,6 +11,8 @@ const (
 	Quote       = '"'
 	Exclamation = '!'
 	Hyphen      = '-'
+	LeftBracket = '['
+	RightBracket = ']'
 )
 
 type Elem struct {
@@ -69,16 +71,29 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 		buf.WriteRune(Exclamation)
 		buf.WriteRune(Hyphen)
 		buf.WriteRune(Hyphen)
-
-		buf.Write(el.text)
+		
+		isCond := len(el.attr) == 1
+		
+		if isCond {
+			buf.WriteRune(LeftBracket)
+			buf.Write(el.attr[0][0])
+			buf.WriteRune(RightBracket)
+			buf.WriteRune(RightCarrot)
+		} else {
+			buf.Write(el.text)
+		}
 
 		for _, child := range el.children {
 			child.ToString(buf)
 		}
 
-		buf.WriteRune(Hyphen)
-		buf.WriteRune(Hyphen)
-		buf.WriteRune(RightCarrot)
+		if isCond {
+			buf.WriteString("<![endif]-->")
+		} else {
+			buf.WriteRune(Hyphen)
+			buf.WriteRune(Hyphen)
+			buf.WriteRune(RightCarrot)
+		}
 		return
 	}
 	// TODO probably no need to make a new map for each subelement all the time

@@ -16,7 +16,7 @@ func TestImpliedEnd(t *testing.T) {
 }
 
 func TestAttrMultiline(t *testing.T) {
-	
+	/*
 	s := `
 %html
 	%head
@@ -27,6 +27,15 @@ func TestAttrMultiline(t *testing.T) {
 			somemore.css
 	%body
 		%div Hello
+	`
+	*/
+	s := `
+%html %body
+	![if IE]
+		%div a
+			%p b
+		%div c
+	![if !IE] %div d
 	`
 /*
 	s := `

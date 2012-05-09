@@ -96,7 +96,7 @@ Both paragraphs will be rendered the same. Use a backslash to control whitespace
 
 This would insert a space before One.
 
-Also keep in mind that trailing whitespace is currently preserved but subject to change!
+Also keep in mind that trailing whitespace is preserved!
 
 ### Integration with html/template
 
@@ -126,9 +126,6 @@ The {end} here is optional (omitted in the example above), but there are times y
 		%p some trailing text
 ```
 
-
-
-
 ### Damsel Comments
 
 ```
@@ -147,7 +144,7 @@ The {end} here is optional (omitted in the example above), but there are times y
 
 ### HTML Comments
 
-There's basic support for commenting out blocks of code via html comments, and also comment text. Support for browser specific IFs is on my TODO
+Support commenting out blocks of code via html comments with optional text, and browser specific IFs.
 
 ```
 %html %body
@@ -155,7 +152,7 @@ There's basic support for commenting out blocks of code via html comments, and a
 		%li 1
 		%li 2
 ```
-The use of ! as a block element, causing %ul to become inlined will cause the entire block to become commented out. The ! could also be placed after the body tag in this case. You can also nest items under a comment.
+The use of ! as a block element, causing %ul to become inlined, will cause the entire block to become commented out. The ! could also be placed after the body tag in this case. You can also nest items under a comment.
 
 ```
 %html %body
@@ -164,6 +161,8 @@ The use of ! as a block element, causing %ul to become inlined will cause the en
 	%div
 		! this comment doesn't enclose any tags
 		%span Hello World
+
+	![if IE] %p Internet Explorer
 ```
 
 ### Filters
