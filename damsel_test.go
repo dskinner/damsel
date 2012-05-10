@@ -31,11 +31,10 @@ func TestAttrMultiline(t *testing.T) {
 	*/
 	s := `
 %html %body
-	![if IE]
-		%div a
-			%p b
-		%div c
-	![if !IE] %div d
+	%div a
+		:include test.dmsl
+		%p b
+	%div c
 	`
 /*
 	s := `

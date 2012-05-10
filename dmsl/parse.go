@@ -26,8 +26,24 @@ func css(root []byte, files ...[]byte) string {
 }
 
 func extends(filename []byte, content ...[]byte) string {
-	bytes := Open(string(filename), "tests")
+	bytes := Open(string(filename), TemplateDir)
 	return string(bytes)
+}
+
+func include(filename []byte, n int) string {
+	ws := ""
+	for i := 0; i < n; i++ {
+		ws += "\t"
+	}
+	bytes := Open(string(filename), TemplateDir)
+	s := strings.Split(string(bytes), "\n")
+	for i, l := range s {
+		if i == 0 { // gets inserted at original whitespace so no need to prepend
+			continue
+		}
+		s[i] = ws + l
+	}
+	return strings.Join(s, "\n")
 }
 
 type filterFn func([]byte, ...[]byte) string
@@ -99,11 +115,13 @@ type Lexer struct {
 	action []byte
 
 	tmplDir string
+	
 	textWs  float64
 	curWs   float64
 	prevWs  float64
 	root    *Elem
 	curElem *Elem
+	
 	ids     map[string][]*Elem
 	cache   map[float64]*Elem
 	
@@ -305,18 +323,21 @@ func lexFilterContent(l *Lexer) stateFn {
 		}
 		
 		if float64(l.pos - l.start) <= l.filter.ws {
-			
-			// TODO check that l.filter.name is actually in funcMap
-			result := l.funcMap[string(l.filter.name)](l.filter.args, l.filter.content...)
+			var result string
+			// TODO need better filter scheme so no special casing here
+			if string(l.filter.name) == "include" {
+				result = include(l.filter.args, int(l.filter.ws))
+			} else {
+				// TODO check that l.filter.name is actually in funcMap
+				result = l.funcMap[string(l.filter.name)](l.filter.args, l.filter.content...)
+			}
 			b := []byte(result)
-			
 			// need to evaluate filterFn result against normal lexing
 			l.bytes = append(l.bytes[:l.filter.start], append(b, l.bytes[l.start-1:]...)...)
 			// reset pos to delete/insert point for lexer
 			l.pos = l.filter.start
 			// reset start point to beginning of line
 			l.start = l.pos-int(l.filter.ws)
-			
 			return lexWhiteSpace
 		}
 		
@@ -500,17 +521,10 @@ func lexAction(l *Lexer) stateFn {
 	return lexAction
 }
 
-// TODO implement include, will probably be slow due to needing to loop through and insert l.curWs after every line break, before insert into l.bytes
+// TODO can this be generalized beyond text/template
 func handleAction(l *Lexer) stateFn {
 	s := string(l.action)
 	switch {
-	case strings.HasPrefix(s, "{extends ") || strings.HasPrefix(s, "extends "):
-		l.next()
-		s2 := strings.Split(s, "\"")[1]
-		bytes := append([]byte{'\n'}, Open(s2, l.tmplDir)...)
-		l.bytes = append(l.bytes[:l.pos], append(bytes, l.bytes[l.pos:]...)...)
-		l.start = l.pos
-		return lexWhiteSpace
 	case strings.HasPrefix(s, "{range "):
 		l.curElem.actionEnds++
 		return lexText

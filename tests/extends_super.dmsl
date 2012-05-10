@@ -1,4 +1,4 @@
-{extends "overlay.dmsl"}
+:extends overlay.dmsl
 
 #content[super]
     %span Two

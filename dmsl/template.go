@@ -43,10 +43,6 @@ var TemplateFuncMap = template.FuncMap{
 	"css": css,
 }
 
-func include(s string) template.HTML {
-	return template.HTML("include('" + s + "')")
-}
-
 type Template struct {
 	html *template.Template
 }

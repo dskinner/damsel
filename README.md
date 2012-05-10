@@ -74,6 +74,8 @@ It's also important that an #id tag is unique in the document as damsel facilita
 
 	#bar[a=1][b=2]
 		[c=3][d=4]
+
+	%span[a][b] Attributes do not require values
 ```
 
 Attributes can be inlined, line-breaked, or a combination of such. Provide quotes around the attribute value to escape [].
@@ -170,7 +172,7 @@ The use of ! as a block element, causing %ul to become inlined, will cause the e
 There is basic support for filters (still undergoing testing and changes). A filter in damsel is just another way of calling a function
 while also preserving indention of the inner content lines making this suitable for parsing other indention based markup. Once a filter
 has been processed, the lexer will parse the result, allowing for {actions}, damsel, syntax, or even a filter that returns a filter (which is utter madness).
-In time, a damsel template will facilitate custom functions, but included at the moment are js, css, and extends.
+In time, a damsel template will facilitate custom functions, but included at the moment are js, css, include, and extends.
 
 ```
 %html
@@ -195,5 +197,78 @@ This would be the same as typing it out:
 		#content Hello
 ```
 
+### Reusable Templates
+
+Damsel allows any element with an id specified to be overridden. Also required is at least one root node that will serve as the main document output.
+Additional root nodes are checked against the first for overridable content. For example:
+
+```
+%html %body
+	#content %p Hello, World
+
+#content OVERRIDE
+```
+
+This would produce the output:
+
+```html
+<html><body>
+	<div id="content">OVERRIDE</div>
+</body></html>
+```
+
+#### Extends
+
+This functionality is also facilitated with the filter extends.
+
+```
+:extends overlay.dmsl
+
+#content %ul
+	%li OVERRIDE
+	%li OVERRIDE
+```
+
+If you wish to append child nodes instead of override them, you can specify a super attribute.
+
+```
+:extends overlay.dmsl
+
+#content[super]
+	%p A second paragraph
+```
+
+#### Include
+
+The filter include is also available. When used, the whitespace preceding its declaration will be used to adjust content accordingly. 
+For example, given the following document:
+
+```
+%ul
+	%li One
+	%li Two
+```
+
+included in this document:
+
+```
+%html %body
+	#content
+		%h1 My Numbers
+		:include mynumbers.dmsl
+```
+
+would effectively be the same as
+
+```
+%html %body
+	#content
+		%h1 My Numbers
+		%ul
+			%li One
+			%li Two
+```
+
 ### More Examples
+
 For more exmaples, refer to the templates under /tests or read http://dmsl.dasa.cc for a general idea (minus all the python parts)
