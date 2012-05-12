@@ -9,13 +9,28 @@ import (
 	"testing"
 )
 
-func TestImpliedEnd(t *testing.T) {
-	b, _ := ioutil.ReadFile(filepath.Join(TestsDir, "bigtable_noend.dmsl"))
-	r := dmsl.LexerParse(b, "").String()
+func _TestParserParse(t *testing.T) {
+	s := `
+%html %body
+	%div a
+		%ul
+			%li 1
+			%li 2
+		%p b
+	%div c
+	`
+	
+	r := dmsl.ParserParse([]byte(s))
 	fmt.Println(r)
 }
 
-func TestAttrMultiline(t *testing.T) {
+func _TestImpliedEnd(t *testing.T) {
+	b, _ := ioutil.ReadFile(filepath.Join(TestsDir, "bigtable_noend.dmsl"))
+	r := dmsl.ParserParse(b)
+	fmt.Println(r)
+}
+
+func _TestAttrMultiline(t *testing.T) {
 	/*
 	s := `
 %html
@@ -32,7 +47,9 @@ func TestAttrMultiline(t *testing.T) {
 	s := `
 %html %body
 	%div a
-		:include test.dmsl
+		%ul
+			%li 1
+			%li 2
 		%p b
 	%div c
 	`
@@ -46,12 +63,14 @@ func TestAttrMultiline(t *testing.T) {
 	<a href="asdf">asdf</a>
 	`
 	*/
+	dmsl.TemplateDir = TestsDir
+	/*
 	r := dmsl.LexerParse([]byte(s), "").String()
 	fmt.Println(s)
 	fmt.Println(r)
-	
-	tmpl, err := dmsl.Parse([]byte(s)).Execute(nil)
-	fmt.Println(tmpl, err)
+	*/
+	tmpl, _ := dmsl.Parse([]byte(s)).Execute(nil)
+	fmt.Println(tmpl)
 }
 
 var TestsDir = "tests"
@@ -65,8 +84,10 @@ func get_html(t *testing.T, s string) string {
 }
 
 func test(t *testing.T, s string, data interface{}) {
+	fmt.Println("testing:", s)
 	dmsl.TemplateDir = TestsDir
 	html := get_html(t, s)
+	
 	tmpl := dmsl.ParseFile(s + ".dmsl")
 	r, err := tmpl.Execute(data)
 	r = strings.TrimSpace(r)
@@ -126,7 +147,7 @@ func Benchmark_lex(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		dmsl.LexerParse(bytes, dmsl.TemplateDir).String()
+		dmsl.ParserParse(bytes)
 	}
 }
 

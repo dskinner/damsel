@@ -15,6 +15,10 @@ const (
 	RightBracket = ']'
 )
 
+var DefaultTag []byte = []byte("div")
+var AttrId []byte = []byte("id")
+var AttrClass []byte = []byte("class")
+
 type Elem struct {
 	parent     *Elem
 	children   []*Elem

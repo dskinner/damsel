@@ -19,14 +19,7 @@ func main() {
 	}
 
 	if debug {
-		/*
-			f := strings.Split(parse.Open(filename, ""), "\n")
-			s := parse.Pre(f, "")
-			for _, l := range s {
-				fmt.Println(l)
-			}
-		*/
-		fmt.Println(dmsl.LexerParse(dmsl.Open(filename, ""), "").String())
+		fmt.Println(dmsl.ParserParse(dmsl.Open(filename, "")))
 	} else {
 		t := dmsl.ParseFile(filename)
 		result, err := t.Execute(nil)

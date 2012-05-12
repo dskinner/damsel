@@ -65,7 +65,7 @@ func ParseString(src string) *Template {
 
 func (t *Template) Parse(src []byte) *Template {
 	//s := parse.Parse(src, TemplateDir)
-	s := LexerParse(src, TemplateDir).String()
+	s := ParserParse(src)
 	if Debug {
 		fmt.Println(s)
 	}
