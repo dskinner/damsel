@@ -302,7 +302,7 @@ func lexText(l *Lexer) stateFn {
 			l.emit(TokenText)
 			l.discard()
 			return lexWhiteSpace
-		case '{':
+		case '{': // TODO use correct delimiters!!!!
 			l.reset() // TODO check on this, originally lexAction just appended each byte along the way
 			return lexAction
 		case eof:

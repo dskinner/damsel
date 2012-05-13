@@ -86,6 +86,7 @@ func get_html(t *testing.T, s string) string {
 func test(t *testing.T, s string, data interface{}) {
 	fmt.Println("testing:", s)
 	dmsl.TemplateDir = TestsDir
+	dmsl.ActionHandler = dmsl.ActionGoTemplate
 	html := get_html(t, s)
 
 	if data == nil {

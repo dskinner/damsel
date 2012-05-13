@@ -1,9 +1,20 @@
 package dmsl
 
-import (
-	"strings"
-	//"runtime"
+type ActionType int
+
+const (
+	ActionStart      ActionType = iota
+	ActionEnd
+	ActionIgnore
 )
+
+type actionFn func(string) ActionType
+
+func defActionHandler(s string) ActionType {
+	return ActionIgnore
+}
+
+var ActionHandler actionFn = defActionHandler
 
 type Filter struct {
 	start     int
@@ -130,12 +141,10 @@ func (p *Parser) AppendText(t Token) {
 }
 
 func (p *Parser) handleAction(s string) {
-	switch {
-	case strings.HasPrefix(s, "{range "):
+	switch ActionHandler(s) {
+	case ActionStart:
 		p.curElem.actionEnds++
-	case strings.HasPrefix(s, "{if "):
-		p.curElem.actionEnds++
-	case s == "{end}":
+	case ActionEnd:
 		if p.textWs > p.prevWs {
 			p.cache[p.prevWs].actionEnds--
 		} else if p.textWs == p.prevWs {
@@ -237,7 +246,7 @@ func (p *Parser) receiveTokens(t Token, l *Lexer) {
 		case TokenFilterContentDefault:
 			p.handleFilterContentDefault(t, l)
 		case TokenAction:
-			action := string(p.bytes[t.start:t.end])
+			action := string(p.bytes[t.start+len(LeftDelim):t.end])
 			p.handleAction(action)
 			break
 		case TokenEOF:
