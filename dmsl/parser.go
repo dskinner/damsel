@@ -121,11 +121,11 @@ func (p *Parser) AppendAttrKey(t Token) {
 
 func (p *Parser) AppendText(t Token) {
 	if p.textWs == 0 || p.textWs > p.curWs {
-		p.curElem.text = append(p.curElem.text, p.getBytes(t)...)
+		p.curElem.text = append(p.curElem.text, p.getBytes(t))
 	} else if p.textWs == p.curWs {
-		p.curElem.tail = append(p.curElem.tail, p.getBytes(t)...)
+		p.curElem.tail = append(p.curElem.tail, p.getBytes(t))
 	} else if p.textWs < p.curWs {
-		p.cache[p.textWs].tail = append(p.cache[p.textWs].tail, p.getBytes(t)...)
+		p.cache[p.textWs].tail = append(p.cache[p.textWs].tail, p.getBytes(t))
 	}
 }
 

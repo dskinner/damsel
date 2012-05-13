@@ -11,6 +11,7 @@ import (
 
 var filename = flag.String("f", "", "file to parse")
 var debug = flag.Bool("d", false, "print parser debug info")
+var pprint = flag.Bool("pprint", false, "pretty print output")
 //var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func main() {
@@ -32,6 +33,10 @@ func main() {
 	if *filename == "" {
 		flag.Usage()
 		return
+	}
+	
+	if *pprint {
+		dmsl.Pprint = true
 	}
 
 	if *debug {

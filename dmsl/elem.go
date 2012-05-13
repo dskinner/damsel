@@ -13,8 +13,10 @@ const (
 	Hyphen       = '-'
 	LeftBracket  = '['
 	RightBracket = ']'
+	LineBreak    = '\n'
 )
 
+var Pprint bool = false
 var DefaultTag []byte = []byte("div")
 var AttrId []byte = []byte("id")
 var AttrClass []byte = []byte("class")
@@ -27,8 +29,8 @@ type Elem struct {
 	id         []byte
 	class      [][]byte
 	attr       [][][]byte
-	text       []byte
-	tail       []byte
+	text       [][]byte
+	tail       [][]byte
 	actionEnds int
 	isComment bool
 }
@@ -43,7 +45,7 @@ func (el *Elem) SubElement() *Elem {
 
 func (el *Elem) String() string {
 	buf := new(bytes.Buffer)
-	el.ToString(buf)
+	el.ToString(buf, Pprint)
 	return buf.String()
 }
 
@@ -56,7 +58,7 @@ func contains(container [][]byte, item []byte) bool {
 	return false
 }
 
-func (el *Elem) ToString(buf *bytes.Buffer) {
+func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 
 	// TODO get this `if` out of here
 	if el.isComment {
@@ -73,11 +75,13 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 			buf.WriteRune(RightBracket)
 			buf.WriteRune(RightCarrot)
 		} else {
-			buf.Write(el.text)
+			for _, text := range el.text {
+				buf.Write(text)
+			}
 		}
 
 		for _, child := range el.children {
-			child.ToString(buf)
+			child.ToString(buf, pprint)
 		}
 
 		if isCond {
@@ -92,6 +96,12 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 	
 	keys := [][]byte{}
 
+	if pprint {
+		for i := 0; i < el.ws; i++ {
+			buf.WriteRune(Space)
+		}
+	}
+	
 	buf.WriteRune(LeftCarrot)
 	buf.Write(el.tag)
 
@@ -134,18 +144,48 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 	}
 
 	buf.WriteRune(RightCarrot)
-	buf.Write(el.text)
+	
+	for _, text := range el.text {
+		if pprint && len(el.children) != 0 {
+			buf.WriteRune(LineBreak)
+			for i := 0; i < el.children[0].ws; i++ {
+				buf.WriteRune(Space)
+			}
+		}
+		buf.Write(text)
+	}
 
 	for _, child := range el.children {
-		child.ToString(buf)
+		if pprint {
+			buf.WriteRune(LineBreak)
+		}
+		child.ToString(buf, pprint)
+		if pprint {
+			buf.WriteRune(LineBreak)
+		}
 	}
 
 	for i := 0; i < el.actionEnds; i++ {
 		buf.WriteString("{end}")
 	}
+
+	if pprint && len(el.children) != 0 {
+		for i := 0; i < el.ws; i++ {
+			buf.WriteRune(Space)
+		}
+	}
+	
 	buf.WriteRune(LeftCarrot)
 	buf.WriteRune(Slash)
 	buf.Write(el.tag)
 	buf.WriteRune(RightCarrot)
-	buf.Write(el.tail)
+	for _, text := range el.tail {
+		if pprint {
+			buf.WriteRune(LineBreak)
+			for i := 0; i < el.ws; i++ {
+				buf.WriteRune(Space)
+			}
+		}
+		buf.Write(text)
+	}
 }
