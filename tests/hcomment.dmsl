@@ -1,0 +1,11 @@
+%html %body
+    ! %ul
+        %li 1
+        %li 2
+    ! here's a comment though it's not required
+        %h1 Hello World
+    %div
+        ! this comment doesn't enclose any tags
+        %span Hello World
+
+    ![if IE] %p Internet Explorer

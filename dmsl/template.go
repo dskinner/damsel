@@ -49,7 +49,7 @@ type Template struct {
 
 func New() *Template {
 	t := &Template{}
-	t.html = template.New("").Delims(LeftDelim, RightDelim)//.Funcs(TemplateFuncMap)
+	t.html = template.New("").Delims(LeftDelim, RightDelim) //.Funcs(TemplateFuncMap)
 	return t
 }
 

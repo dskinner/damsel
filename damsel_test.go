@@ -19,7 +19,7 @@ func _TestParserParse(t *testing.T) {
 		%p b
 	%div c
 	`
-	
+
 	r := dmsl.ParserParse([]byte(s))
 	fmt.Println(r)
 }
@@ -32,17 +32,17 @@ func _TestImpliedEnd(t *testing.T) {
 
 func _TestAttrMultiline(t *testing.T) {
 	/*
-	s := `
-%html
-	%head
-		%title Hello
-		:css /css/
-			main.css
-			other.css
-			somemore.css
-	%body
-		%div Hello
-	`
+		s := `
+	%html
+		%head
+			%title Hello
+			:css /css/
+				main.css
+				other.css
+				somemore.css
+		%body
+			%div Hello
+		`
 	*/
 	s := `
 %html %body
@@ -53,21 +53,21 @@ func _TestAttrMultiline(t *testing.T) {
 		%p b
 	%div c
 	`
-/*
-	s := `
-:extends overlay.dmsl
+	/*
+		s := `
+	:extends overlay.dmsl
 
-#content
-	%p Woot
-	%p Bird
-	<a href="asdf">asdf</a>
-	`
+	#content
+		%p Woot
+		%p Bird
+		<a href="asdf">asdf</a>
+		`
 	*/
 	dmsl.TemplateDir = TestsDir
 	/*
-	r := dmsl.LexerParse([]byte(s), "").String()
-	fmt.Println(s)
-	fmt.Println(r)
+		r := dmsl.LexerParse([]byte(s), "").String()
+		fmt.Println(s)
+		fmt.Println(r)
 	*/
 	tmpl, _ := dmsl.Parse([]byte(s)).Execute(nil)
 	fmt.Println(tmpl)
@@ -87,13 +87,24 @@ func test(t *testing.T, s string, data interface{}) {
 	fmt.Println("testing:", s)
 	dmsl.TemplateDir = TestsDir
 	html := get_html(t, s)
-	
-	tmpl := dmsl.ParseFile(s + ".dmsl")
-	r, err := tmpl.Execute(data)
-	r = strings.TrimSpace(r)
-	if r != html {
-		fmt.Println("\nExpected\n========\n", html, "\nReceived\n========\n", r, "\n\n")
-		t.Fatal("parse failed:", s, "\n", err)
+
+	if data == nil {
+		b, _ := ioutil.ReadFile(filepath.Join(TestsDir, s+".dmsl"))
+		r := dmsl.ParserParse(b)
+		// TODO
+		r = "<!DOCTYPE html>"+strings.TrimSpace(r)
+		if r != html {
+			fmt.Println("\nExpected\n========\n", html, "\nReceived\n========\n", r, "\n\n")
+			t.Fatal("parse failed:", s)
+		}
+	} else {
+		tmpl := dmsl.ParseFile(s + ".dmsl")
+		r, err := tmpl.Execute(data)
+		r = strings.TrimSpace(r)
+		if r != html {
+			fmt.Println("\nExpected\n========\n", html, "\nReceived\n========\n", r, "\n\n")
+			t.Fatal("parse failed:", s, "\n", err)
+		}
 	}
 }
 
@@ -124,6 +135,10 @@ func Test_tabs(t *testing.T) {
 
 func Test_tag_hashes(t *testing.T) {
 	test(t, "tag_hashes", nil)
+}
+
+func Test_html_comment(t *testing.T) {
+	test(t, "hcomment", nil)
 }
 
 func Test_extends(t *testing.T) {

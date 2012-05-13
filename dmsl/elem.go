@@ -3,15 +3,15 @@ package dmsl
 import "bytes"
 
 const (
-	LeftCarrot  = '<'
-	Slash       = '/'
-	RightCarrot = '>'
-	Space       = ' '
-	Equal       = '='
-	Quote       = '"'
-	Exclamation = '!'
-	Hyphen      = '-'
-	LeftBracket = '['
+	LeftCarrot   = '<'
+	Slash        = '/'
+	RightCarrot  = '>'
+	Space        = ' '
+	Equal        = '='
+	Quote        = '"'
+	Exclamation  = '!'
+	Hyphen       = '-'
+	LeftBracket  = '['
 	RightBracket = ']'
 )
 
@@ -22,6 +22,7 @@ var AttrClass []byte = []byte("class")
 type Elem struct {
 	parent     *Elem
 	children   []*Elem
+	ws int
 	tag        []byte
 	id         []byte
 	class      [][]byte
@@ -29,27 +30,7 @@ type Elem struct {
 	text       []byte
 	tail       []byte
 	actionEnds int
-	// TODO use Comment struct
 	isComment bool
-}
-
-type Comment struct {
-	Elem
-}
-
-func (el *Comment) ToString(buf *bytes.Buffer) {
-	buf.WriteRune(LeftCarrot)
-	buf.WriteRune(Exclamation)
-	buf.WriteRune(Hyphen)
-	buf.WriteRune(Hyphen)
-
-	for _, child := range el.children {
-		child.ToString(buf)
-	}
-
-	buf.WriteRune(Hyphen)
-	buf.WriteRune(Hyphen)
-	buf.WriteRune(RightCarrot)
 }
 
 func (el *Elem) SubElement() *Elem {
@@ -57,7 +38,6 @@ func (el *Elem) SubElement() *Elem {
 	newElem.tag = DefaultTag
 	newElem.parent = el
 	el.children = append(el.children, newElem)
-	//fmt.Println("elem:", newElem)
 	return newElem
 }
 
@@ -67,17 +47,26 @@ func (el *Elem) String() string {
 	return buf.String()
 }
 
+func contains(container [][]byte, item []byte) bool {
+	for _, x := range container {
+		if bytes.Equal(x, item) {
+			return true
+		}
+	}
+	return false
+}
+
 func (el *Elem) ToString(buf *bytes.Buffer) {
 
-	// TODO use Comment struct in parser
+	// TODO get this `if` out of here
 	if el.isComment {
 		buf.WriteRune(LeftCarrot)
 		buf.WriteRune(Exclamation)
 		buf.WriteRune(Hyphen)
 		buf.WriteRune(Hyphen)
-		
+
 		isCond := len(el.attr) == 1
-		
+
 		if isCond {
 			buf.WriteRune(LeftBracket)
 			buf.Write(el.attr[0][0])
@@ -100,8 +89,8 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 		}
 		return
 	}
-	// TODO probably no need to make a new map for each subelement all the time
-	keys := make(map[string]bool)
+	
+	keys := [][]byte{}
 
 	buf.WriteRune(LeftCarrot)
 	buf.Write(el.tag)
@@ -130,7 +119,7 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 	}
 
 	for _, v := range el.attr {
-		if keys[string(v[0])] {
+		if contains(keys, v[0]) {
 			continue
 		}
 
@@ -141,7 +130,7 @@ func (el *Elem) ToString(buf *bytes.Buffer) {
 		buf.Write(v[1])
 		buf.WriteRune(Quote)
 
-		keys[string(v[0])] = true
+		keys = append(keys, v[0])
 	}
 
 	buf.WriteRune(RightCarrot)
