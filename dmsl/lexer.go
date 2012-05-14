@@ -48,53 +48,55 @@ var TokenString = map[TokenType]string{
 	TokenEOF:                  "EOF",
 }
 
-type stateFn func(*Lexer) stateFn
+type TokenReceiver interface {
+	ReceiveToken(Token, *lexer)
+}
 
-type Lexer struct {
+type stateFn func(*lexer) stateFn
+
+type lexer struct {
 	bytes      []byte
 	state      stateFn
 	pos        int
 	start      int
 	filterDone bool // TODO ditch the need for this
-	tokens     chan Token
-	parser     *Parser
+	receiver   TokenReceiver
 }
 
-func (l *Lexer) Run() {
-	for l.state != nil {
-		l.state = l.state(l)
-	}
-	l.tokens <- Token{typ: TokenEOF, start: 0, end: 0}
+func NewLexer(receiver TokenReceiver) *lexer {
+	l := new(lexer)
+	l.receiver = receiver
+	l.state = lexWhiteSpace
+	return l
 }
 
-func (l *Lexer) emit(t TokenType) {
-	//l.tokens <- Token{typ: t, start: l.start, end: l.pos}
-	l.parser.receiveTokens(Token{typ: t, start: l.start, end: l.pos}, l)
+func (l *lexer) emit(t TokenType) {
+	l.receiver.ReceiveToken(Token{typ: t, start: l.start, end: l.pos}, l)
 }
 
-func (l *Lexer) next() {
+func (l *lexer) next() {
 	l.pos++
 }
 
-func (l *Lexer) reset() {
+func (l *lexer) reset() {
 	l.start = l.pos
 }
 
-func (l *Lexer) rune() rune {
+func (l *lexer) rune() rune {
 	if l.pos >= len(l.bytes) {
 		return eof
 	}
 	return rune(l.bytes[l.pos])
 }
 
-func (l *Lexer) discard() {
+func (l *lexer) discard() {
 	l.pos++
 	l.start = l.pos
 }
 
-// These are the lexer states that will execute on each iteration based on which is set to Lexer.state
+// These are the lexer states that will execute on each iteration based on which lexer.state is set to.
 
-func lexWhiteSpace(l *Lexer) stateFn {
+func lexWhiteSpace(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ' ', '\t':
@@ -130,7 +132,7 @@ func lexWhiteSpace(l *Lexer) stateFn {
 	return lexWhiteSpace
 }
 
-func lexComment(l *Lexer) stateFn {
+func lexComment(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '\n':
@@ -146,7 +148,7 @@ func lexComment(l *Lexer) stateFn {
 	return lexComment
 }
 
-func lexHash(l *Lexer) stateFn {
+func lexHash(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '%':
@@ -169,7 +171,7 @@ func lexHash(l *Lexer) stateFn {
 	return lexHash
 }
 
-func lexHashTag(l *Lexer) stateFn {
+func lexHashTag(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '#', '.', '[', ' ', '\t', '\n', eof:
@@ -182,7 +184,7 @@ func lexHashTag(l *Lexer) stateFn {
 	return lexHashTag
 }
 
-func lexHashId(l *Lexer) stateFn {
+func lexHashId(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '#', '.', '[', ' ', '\t', '\n', eof: // TODO technically there should never be multiple ids, and damsel should be strict regarding this due to extends
@@ -195,7 +197,7 @@ func lexHashId(l *Lexer) stateFn {
 	return lexHashId
 }
 
-func lexHashClass(l *Lexer) stateFn {
+func lexHashClass(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '#', '.', '[', ' ', '\t', '\n', eof:
@@ -208,20 +210,12 @@ func lexHashClass(l *Lexer) stateFn {
 	return lexHashClass
 }
 
-func lexAttributeKey(l *Lexer) stateFn {
+func lexAttributeKey(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '=':
 			l.emit(TokenAttrKey)
 			l.discard()
-
-			// check for literal value
-			switch l.rune() {
-			case '\'', '"':
-				l.next()
-				return lexAttributeValueLiteral
-			}
-
 			return lexAttributeValue
 		case ']':
 			l.emit(TokenAttrKey)
@@ -234,28 +228,14 @@ func lexAttributeKey(l *Lexer) stateFn {
 	return lexAttributeKey
 }
 
-func lexAttributeValueLiteral(l *Lexer) stateFn {
+func lexAttributeValue(l *lexer) stateFn {
 	for {
 		switch l.rune() {
-		case rune(l.bytes[l.start]):
-			if l.bytes[l.pos-1] == '\\' { // check for escaped quote
-				l.next()
-				break
-			} else {
-				return lexAttributeValue
-			}
-		case eof:
-			return nil // TODO handle error
-		default:
+		case '\\':
 			l.next()
-		}
-	}
-	return lexAttributeValueLiteral
-}
-
-func lexAttributeValue(l *Lexer) stateFn {
-	for {
-		switch l.rune() {
+			// skip next input
+			l.next()
+			break
 		case ']':
 			l.emit(TokenAttrValue)
 			l.discard()
@@ -269,7 +249,7 @@ func lexAttributeValue(l *Lexer) stateFn {
 	return lexAttributeValue
 }
 
-func lexText(l *Lexer) stateFn {
+func lexText(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '\n':
@@ -289,7 +269,7 @@ func lexText(l *Lexer) stateFn {
 	return lexText
 }
 
-func lexAction(l *Lexer) stateFn {
+func lexAction(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '}':
@@ -306,7 +286,7 @@ func lexAction(l *Lexer) stateFn {
 
 // lexFilter stands alone for parsing, not mingling with lexWhiteSpace until
 // it's completely finished.
-func lexFilter(l *Lexer) stateFn {
+func lexFilter(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ' ', '\t':
@@ -326,7 +306,7 @@ func lexFilter(l *Lexer) stateFn {
 	return lexFilter
 }
 
-func lexFilterArgs(l *Lexer) stateFn {
+func lexFilterArgs(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '\n':
@@ -342,7 +322,7 @@ func lexFilterArgs(l *Lexer) stateFn {
 	return lexFilterArgs
 }
 
-func lexFilterWhiteSpace(l *Lexer) stateFn {
+func lexFilterWhiteSpace(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ' ', '\t':
@@ -354,7 +334,7 @@ func lexFilterWhiteSpace(l *Lexer) stateFn {
 	return lexFilterWhiteSpace
 }
 
-func lexFilterContent(l *Lexer) stateFn {
+func lexFilterContent(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ' ', '\t':
@@ -368,9 +348,7 @@ func lexFilterContent(l *Lexer) stateFn {
 			// TODO use lexFilterWhiteSpace so we aren't checking p.filter.contentWs ==0 all the time, refer to Parser
 			l.emit(TokenFilterContentDefault)
 
-			// since a filter can cause additional content to be inserted into what we are reading from, wait to hear from Parser that it's finished
-			//runtime.Gosched()
-
+			// TODO
 			if l.filterDone {
 				l.filterDone = false
 				return lexWhiteSpace
@@ -379,6 +357,6 @@ func lexFilterContent(l *Lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	return lexFilterContent
 }

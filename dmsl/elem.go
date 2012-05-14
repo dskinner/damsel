@@ -24,7 +24,7 @@ var AttrClass []byte = []byte("class")
 type Elem struct {
 	parent     *Elem
 	children   []*Elem
-	ws int
+	ws         int
 	tag        []byte
 	id         []byte
 	class      [][]byte
@@ -32,7 +32,7 @@ type Elem struct {
 	text       [][]byte
 	tail       [][]byte
 	actionEnds int
-	isComment bool
+	isComment  bool
 }
 
 func (el *Elem) SubElement() *Elem {
@@ -93,7 +93,7 @@ func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 		}
 		return
 	}
-	
+
 	keys := [][]byte{}
 
 	if pprint {
@@ -101,7 +101,7 @@ func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 			buf.WriteRune(Space)
 		}
 	}
-	
+
 	buf.WriteRune(LeftCarrot)
 	buf.Write(el.tag)
 
@@ -144,7 +144,7 @@ func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 	}
 
 	buf.WriteRune(RightCarrot)
-	
+
 	for _, text := range el.text {
 		if pprint && len(el.children) != 0 {
 			buf.WriteRune(LineBreak)
@@ -174,7 +174,7 @@ func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 			buf.WriteRune(Space)
 		}
 	}
-	
+
 	buf.WriteRune(LeftCarrot)
 	buf.WriteRune(Slash)
 	buf.Write(el.tag)

@@ -3,7 +3,7 @@ package dmsl
 type ActionType int
 
 const (
-	ActionStart      ActionType = iota
+	ActionStart ActionType = iota
 	ActionEnd
 	ActionIgnore
 )
@@ -28,16 +28,16 @@ type Filter struct {
 type FuncMap map[string]filterFn
 
 type Parser struct {
-	bytes []byte
+	bytes   []byte
 	root    *Elem
 	curElem *Elem
-	prevWs int
-	curWs  int
-	textWs int
-	ids   map[string][]*Elem
-	cache []*Elem
-	filter *Filter
-	action []byte
+	prevWs  int
+	curWs   int
+	textWs  int
+	ids     map[string][]*Elem
+	cache   []*Elem
+	filter  *Filter
+	action  []byte
 	funcMap FuncMap
 }
 
@@ -53,17 +53,13 @@ func ParserParse(bytes []byte) string {
 	p.root.tag = []byte("root")
 	p.ids = make(map[string][]*Elem)
 
-	l := new(Lexer)
+	l := NewLexer(p)
 	l.bytes = bytes
-	l.state = lexWhiteSpace
-	l.parser = p
-	//l.tokens = make(chan Token, 100)
 
-	
 	for l.state != nil {
 		l.state = l.state(l)
 	}
-	
+
 	//go l.Run()
 	//p.receiveTokens(l)
 
@@ -104,7 +100,7 @@ func (p *Parser) getBytes(t Token) []byte {
 }
 
 func (p *Parser) extendCache(el *Elem) {
-	for i := el.ws-len(p.cache)+1; i > 0; i-- {
+	for i := el.ws - len(p.cache) + 1; i > 0; i-- {
 		p.cache = append(p.cache, nil)
 	}
 	p.cache[el.ws] = el
@@ -121,7 +117,7 @@ func (p *Parser) NewElem() {
 		p.curElem = p.cache[p.curWs].parent.SubElement()
 		p.cache = p.cache[:p.curWs+1]
 	}
-	
+
 	p.curElem.ws = p.curWs
 	p.extendCache(p.curElem)
 }
@@ -155,7 +151,7 @@ func (p *Parser) handleAction(s string) {
 	}
 }
 
-func (p *Parser) handleFilterContentDefault(t Token, l *Lexer) {
+func (p *Parser) handleFilterContentDefault(t Token, l *lexer) {
 	if p.filter.contentWs == 0 {
 		p.filter.contentWs = CountWhitespace(t)
 	}
@@ -184,77 +180,74 @@ func (p *Parser) handleFilterContentDefault(t Token, l *Lexer) {
 	//runtime.Gosched()
 }
 
-func (p *Parser) receiveTokens(t Token, l *Lexer) {
-//LOOP:
-	//for {
-		//t := <- l.tokens
-		switch t.typ {
-		case TokenElement:
-			if t.start == 0 || rune(p.bytes[t.start-1]) == '\n' {
-				p.prevWs = p.curWs
-				p.curWs = CountWhitespace(t)
-			} else { // handle inline
-				p.prevWs = p.curWs
-				p.curWs++
-			}
-			p.NewElem()
-			break
-		case TokenHashTag:
-			p.curElem.tag = p.bytes[t.start:t.end]
-			break
-		case TokenHashId:
-			p.curElem.id = p.bytes[t.start:t.end]
-			p.ids[string(p.curElem.id)] = append(p.ids[string(p.curElem.id)], p.curElem)
-			break
-		case TokenHashClass:
-			p.curElem.class = append(p.curElem.class, p.bytes[t.start:t.end])
-			break
-		case TokenAttrKey:
-			p.AppendAttrKey(t)
-			break
-		case TokenAttrValue:
-			switch p.bytes[t.start] {
-			case '\'', '"':
-				t.start++
-				t.end--
-				break
-			}
-			p.curElem.attr[len(p.curElem.attr)-1][1] = p.bytes[t.start:t.end]
-			break
-		case TokenText:
-			p.AppendText(t)
-			break
-		case TokenTextWs:
-			if t.start != 0 && rune(p.bytes[t.start-1]) != '\n' {
-				p.textWs = 0
-			} else { // multiline text
-				p.textWs = CountWhitespace(t)
-			}
-			break
-		case TokenComment:
-			p.curElem.isComment = true
-			break
-		case TokenFilter:
-			p.filter = &Filter{start: t.start, ws: CountWhitespace(t)}
-			break
-		case TokenFilterName:
-			p.filter.name = p.getBytes(t)
-			break
-		case TokenFilterArgs:
-			p.filter.args = p.getBytes(t)
-			break
-		case TokenFilterContent:
-			p.filter.content = append(p.filter.content, p.bytes[(t.start+p.filter.contentWs):t.end])
-			break
-		case TokenFilterContentDefault:
-			p.handleFilterContentDefault(t, l)
-		case TokenAction:
-			action := string(p.bytes[t.start+len(LeftDelim):t.end])
-			p.handleAction(action)
-			break
-		case TokenEOF:
-			//break LOOP
+func (p *Parser) ReceiveToken(t Token, l *lexer) {
+	switch t.typ {
+	case TokenElement:
+		if t.start == 0 || rune(p.bytes[t.start-1]) == '\n' {
+			p.prevWs = p.curWs
+			p.curWs = CountWhitespace(t)
+		} else { // handle inline
+			p.prevWs = p.curWs
+			p.curWs++
+		}
+		p.NewElem()
+		break
+	case TokenHashTag:
+		p.curElem.tag = p.bytes[t.start:t.end]
+		break
+	case TokenHashId:
+		p.curElem.id = p.bytes[t.start:t.end]
+		p.ids[string(p.curElem.id)] = append(p.ids[string(p.curElem.id)], p.curElem)
+		break
+	case TokenHashClass:
+		p.curElem.class = append(p.curElem.class, p.bytes[t.start:t.end])
+		break
+	case TokenAttrKey:
+		p.AppendAttrKey(t)
+		break
+	case TokenAttrValue:
+		switch p.bytes[t.start] {
+		case '\'', '"':
+			t.start++
+			t.end--
 			break
 		}
-	//}
+		// TODO remove escapes
+		p.curElem.attr[len(p.curElem.attr)-1][1] = p.bytes[t.start:t.end]
+		break
+	case TokenText:
+		p.AppendText(t)
+		break
+	case TokenTextWs:
+		if t.start != 0 && rune(p.bytes[t.start-1]) != '\n' {
+			p.textWs = 0
+		} else { // multiline text
+			p.textWs = CountWhitespace(t)
+		}
+		break
+	case TokenComment:
+		p.curElem.isComment = true
+		break
+	case TokenFilter:
+		p.filter = &Filter{start: t.start, ws: CountWhitespace(t)}
+		break
+	case TokenFilterName:
+		p.filter.name = p.getBytes(t)
+		break
+	case TokenFilterArgs:
+		p.filter.args = p.getBytes(t)
+		break
+	case TokenFilterContent:
+		p.filter.content = append(p.filter.content, p.bytes[(t.start+p.filter.contentWs):t.end])
+		break
+	case TokenFilterContentDefault:
+		p.handleFilterContentDefault(t, l)
+	case TokenAction:
+		action := string(p.bytes[t.start+len(LeftDelim) : t.end])
+		p.handleAction(action)
+		break
+	case TokenEOF:
+		// TODO
+		break
+	}
 }

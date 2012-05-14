@@ -32,17 +32,17 @@ func _TestImpliedEnd(t *testing.T) {
 
 func _TestAttrMultiline(t *testing.T) {
 	/*
-		s := `
-	%html
-		%head
-			%title Hello
-			:css /css/
-				main.css
-				other.css
-				somemore.css
-		%body
-			%div Hello
-		`
+			s := `
+		%html
+			%head
+				%title Hello
+				:css /css/
+					main.css
+					other.css
+					somemore.css
+			%body
+				%div Hello
+			`
 	*/
 	s := `
 %html %body
@@ -54,14 +54,14 @@ func _TestAttrMultiline(t *testing.T) {
 	%div c
 	`
 	/*
-		s := `
-	:extends overlay.dmsl
+			s := `
+		:extends overlay.dmsl
 
-	#content
-		%p Woot
-		%p Bird
-		<a href="asdf">asdf</a>
-		`
+		#content
+			%p Woot
+			%p Bird
+			<a href="asdf">asdf</a>
+			`
 	*/
 	dmsl.TemplateDir = TestsDir
 	/*
@@ -93,7 +93,7 @@ func test(t *testing.T, s string, data interface{}) {
 		b, _ := ioutil.ReadFile(filepath.Join(TestsDir, s+".dmsl"))
 		r := dmsl.ParserParse(b)
 		// TODO
-		r = "<!DOCTYPE html>"+strings.TrimSpace(r)
+		r = "<!DOCTYPE html>" + strings.TrimSpace(r)
 		if r != html {
 			fmt.Println("\nExpected\n========\n", html, "\nReceived\n========\n", r, "\n\n")
 			t.Fatal("parse failed:", s)
