@@ -6,17 +6,13 @@ type TokenType int
 
 const (
 	TokenElement TokenType = iota
-	TokenWhitespace
-	TokenWhitespaceInc
 	TokenHashTag
 	TokenHashId
 	TokenHashClass
 	TokenAttrKey
 	TokenAttrValue
-	TokenAttrValueLiteral
 	TokenText
 	TokenTextWs
-	TokenTextWsZero
 	TokenComment
 	TokenFilter
 	TokenFilterName
@@ -35,17 +31,13 @@ type Token struct {
 
 var TokenString = map[TokenType]string{
 	TokenElement:              "Element",
-	TokenWhitespace:           "Whitespace",
-	TokenWhitespaceInc:        "WhitespaceInc",
 	TokenHashTag:              "HashTag",
 	TokenHashId:               "HashId",
 	TokenHashClass:            "HashClass",
 	TokenAttrKey:              "AttrKey",
 	TokenAttrValue:            "AttrValue",
-	TokenAttrValueLiteral:     "AttrValueLiteral",
 	TokenText:                 "Text",
 	TokenTextWs:               "TextWs",
-	TokenTextWsZero:           "TextWsZero",
 	TokenComment:              "Comment",
 	TokenFilter:               "Filter",
 	TokenFilterName:           "FilterName",
@@ -122,30 +114,15 @@ func lexWhiteSpace(l *Lexer) stateFn {
 			l.discard()
 			return lexFilter
 		case '%', '#', '.', '!':
-
-			if l.start == 0 || rune(l.bytes[l.start-1]) == '\n' {
-				l.emit(TokenWhitespace)
-			} else { // handle inline
-				l.emit(TokenWhitespaceInc)
-			}
-
 			l.emit(TokenElement)
 			return lexHash
-
 		case eof:
 			return nil
 		default:
-			// handle text
-			if l.start != 0 && rune(l.bytes[l.start-1]) != '\n' {
-				l.emit(TokenTextWsZero)
-			} else { // multiline text
-				l.emit(TokenTextWs)
-			}
-
+			l.emit(TokenTextWs)
 			if l.rune() == '\\' {
 				l.discard()
 			}
-
 			l.reset()
 			return lexText
 		}
@@ -267,6 +244,8 @@ func lexAttributeValueLiteral(l *Lexer) stateFn {
 			} else {
 				return lexAttributeValue
 			}
+		case eof:
+			return nil // TODO handle error
 		default:
 			l.next()
 		}
@@ -278,16 +257,11 @@ func lexAttributeValue(l *Lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ']':
-			// was this a string literal?
-			switch rune(l.bytes[l.start]) {
-			case '\'', '"':
-				l.emit(TokenAttrValueLiteral)
-			default:
-				l.emit(TokenAttrValue)
-			}
+			l.emit(TokenAttrValue)
 			l.discard()
-
 			return lexWhiteSpace
+		case eof:
+			return nil // TODO handle error
 		default:
 			l.next()
 		}

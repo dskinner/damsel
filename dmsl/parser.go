@@ -190,15 +190,14 @@ func (p *Parser) receiveTokens(t Token, l *Lexer) {
 		//t := <- l.tokens
 		switch t.typ {
 		case TokenElement:
+			if t.start == 0 || rune(p.bytes[t.start-1]) == '\n' {
+				p.prevWs = p.curWs
+				p.curWs = CountWhitespace(t)
+			} else { // handle inline
+				p.prevWs = p.curWs
+				p.curWs++
+			}
 			p.NewElem()
-			break
-		case TokenWhitespace:
-			p.prevWs = p.curWs
-			p.curWs = CountWhitespace(t)
-			break
-		case TokenWhitespaceInc:
-			p.prevWs = p.curWs
-			p.curWs++
 			break
 		case TokenHashTag:
 			p.curElem.tag = p.bytes[t.start:t.end]
@@ -214,19 +213,23 @@ func (p *Parser) receiveTokens(t Token, l *Lexer) {
 			p.AppendAttrKey(t)
 			break
 		case TokenAttrValue:
+			switch p.bytes[t.start] {
+			case '\'', '"':
+				t.start++
+				t.end--
+				break
+			}
 			p.curElem.attr[len(p.curElem.attr)-1][1] = p.bytes[t.start:t.end]
-			break
-		case TokenAttrValueLiteral:
-			p.curElem.attr[len(p.curElem.attr)-1][1] = p.bytes[t.start+1 : t.end-1]
 			break
 		case TokenText:
 			p.AppendText(t)
 			break
 		case TokenTextWs:
-			p.textWs = CountWhitespace(t)
-			break
-		case TokenTextWsZero:
-			p.textWs = 0
+			if t.start != 0 && rune(p.bytes[t.start-1]) != '\n' {
+				p.textWs = 0
+			} else { // multiline text
+				p.textWs = CountWhitespace(t)
+			}
 			break
 		case TokenComment:
 			p.curElem.isComment = true

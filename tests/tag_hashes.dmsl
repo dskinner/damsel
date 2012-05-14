@@ -1,7 +1,7 @@
 %html
     %body
         #header.top[cookies=yes]
-        %tag#id.class.class[more=less][some=little]
+        %tag#id.class.class[more="less"][some='little']
         %tag.class#id.class[always=never][no=yes]
         %tag.class.class#id
         #id.class.class
