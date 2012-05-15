@@ -8,6 +8,8 @@ func ActionGoTemplate(s string) ActionType {
 		return ActionStart
 	case strings.HasPrefix(s, "if "):
 		return ActionStart
+	case strings.HasPrefix(s, "with "):
+		return ActionStart
 	case s == "end":
 		return ActionEnd
 	}

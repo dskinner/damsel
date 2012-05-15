@@ -14,11 +14,12 @@ const (
 	TokenText
 	TokenTextWs
 	TokenComment
-	TokenFilter
+	TokenFilterStart
 	TokenFilterName
 	TokenFilterArgs
 	TokenFilterContent
-	TokenFilterContentDefault
+	TokenFilterContentWs
+	TokenFilterEnd
 	TokenAction
 	TokenEOF
 )
@@ -39,17 +40,18 @@ var TokenString = map[TokenType]string{
 	TokenText:                 "Text",
 	TokenTextWs:               "TextWs",
 	TokenComment:              "Comment",
-	TokenFilter:               "Filter",
+	TokenFilterStart:          "FilterStart",
 	TokenFilterName:           "FilterName",
 	TokenFilterArgs:           "FilterArgs",
 	TokenFilterContent:        "FilterContent",
-	TokenFilterContentDefault: "FilterContentDefault",
+	TokenFilterContentWs:      "FilterContentWs",
+	TokenFilterEnd:            "FilterEnd",
 	TokenAction:               "Action",
 	TokenEOF:                  "EOF",
 }
 
 type TokenReceiver interface {
-	ReceiveToken(Token, *lexer)
+	ReceiveToken(Token)
 }
 
 type stateFn func(*lexer) stateFn
@@ -59,7 +61,7 @@ type lexer struct {
 	state      stateFn
 	pos        int
 	start      int
-	filterDone bool // TODO ditch the need for this
+	ident      int
 	receiver   TokenReceiver
 }
 
@@ -70,8 +72,14 @@ func NewLexer(receiver TokenReceiver) *lexer {
 	return l
 }
 
+func (l *lexer) Run() {
+	for l.state != nil {
+		l.state = l.state(l)
+	}
+}
+
 func (l *lexer) emit(t TokenType) {
-	l.receiver.ReceiveToken(Token{typ: t, start: l.start, end: l.pos}, l)
+	l.receiver.ReceiveToken(Token{typ: t, start: l.start, end: l.pos})
 }
 
 func (l *lexer) next() {
@@ -94,6 +102,15 @@ func (l *lexer) discard() {
 	l.start = l.pos
 }
 
+func (l *lexer) saveIdent() {
+	// TODO error if l.ident != -1
+	l.ident = (l.pos - l.start) * 2
+}
+
+func (l *lexer) discardIdent() {
+	l.ident = -1
+}
+
 // These are the lexer states that will execute on each iteration based on which lexer.state is set to.
 
 func lexWhiteSpace(l *lexer) stateFn {
@@ -112,7 +129,8 @@ func lexWhiteSpace(l *lexer) stateFn {
 			l.discard()
 			return lexComment
 		case ':':
-			l.emit(TokenFilter)
+			l.saveIdent()
+			l.emit(TokenFilterStart)
 			l.discard()
 			return lexFilter
 		case '%', '#', '.', '!':
@@ -164,6 +182,8 @@ func lexHash(l *lexer) stateFn {
 			l.discard()
 			l.emit(TokenComment)
 			return lexWhiteSpace
+		case eof:
+			return nil
 		default:
 			return lexWhiteSpace
 		}
@@ -187,7 +207,7 @@ func lexHashTag(l *lexer) stateFn {
 func lexHashId(l *lexer) stateFn {
 	for {
 		switch l.rune() {
-		case '#', '.', '[', ' ', '\t', '\n', eof: // TODO technically there should never be multiple ids, and damsel should be strict regarding this due to extends
+		case '#', '.', '[', ' ', '\t', '\n', eof: // dup id will throw error later for strict rule enforcement
 			l.emit(TokenHashId)
 			return lexHash
 		default:
@@ -221,6 +241,8 @@ func lexAttributeKey(l *lexer) stateFn {
 			l.emit(TokenAttrKey)
 			l.discard()
 			return lexWhiteSpace
+		case eof:
+			return nil // TODO emit error
 		default:
 			l.next()
 		}
@@ -257,7 +279,7 @@ func lexText(l *lexer) stateFn {
 			l.discard()
 			return lexWhiteSpace
 		case '{': // TODO use correct delimiters!!!!
-			l.reset() // TODO check on this, originally lexAction just appended each byte along the way
+			l.reset()
 			return lexAction
 		case eof:
 			l.emit(TokenText)
@@ -296,7 +318,7 @@ func lexFilter(l *lexer) stateFn {
 		case '\n':
 			l.emit(TokenFilterName)
 			l.discard()
-			return lexFilterContent
+			return lexFilterWhiteSpace
 		case eof:
 			return nil
 		default:
@@ -312,7 +334,7 @@ func lexFilterArgs(l *lexer) stateFn {
 		case '\n':
 			l.emit(TokenFilterArgs)
 			l.discard()
-			return lexFilterContent
+			return lexFilterWhiteSpace
 		case eof:
 			return nil
 		default:
@@ -327,8 +349,20 @@ func lexFilterWhiteSpace(l *lexer) stateFn {
 		switch l.rune() {
 		case ' ', '\t':
 			l.next()
-		case '\n':
 			break
+		case '\n':
+			l.emit(TokenFilterContent)
+			l.discard()
+			break
+		default:
+			if (l.pos - l.start) * 2 <= l.ident {
+				l.emit(TokenFilterEnd)
+				l.discardIdent() // discards previously saved ident level
+				// dont reset position so lexWhiteSpace is aware of current ident level
+				return lexWhiteSpace
+			}
+			l.emit(TokenFilterContentWs)
+			return lexFilterContent
 		}
 	}
 	return lexFilterWhiteSpace
@@ -337,24 +371,13 @@ func lexFilterWhiteSpace(l *lexer) stateFn {
 func lexFilterContent(l *lexer) stateFn {
 	for {
 		switch l.rune() {
-		case ' ', '\t':
-			l.next()
-			break
 		case '\n':
 			l.emit(TokenFilterContent)
 			l.discard()
-			break
+			return lexFilterWhiteSpace
 		default:
-			// TODO use lexFilterWhiteSpace so we aren't checking p.filter.contentWs ==0 all the time, refer to Parser
-			l.emit(TokenFilterContentDefault)
-
-			// TODO
-			if l.filterDone {
-				l.filterDone = false
-				return lexWhiteSpace
-			}
-
 			l.next()
+			break
 		}
 	}
 

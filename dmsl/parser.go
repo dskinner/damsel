@@ -17,18 +17,18 @@ func defActionHandler(s string) ActionType {
 var ActionHandler actionFn = defActionHandler
 
 type Filter struct {
-	start     int
-	name      []byte
-	args      []byte
-	content   [][]byte
-	ws        int
-	contentWs int
+	name       []byte
+	start      int
+	contentWs  int
+	Args       []byte
+	Content    [][]byte
+	Whitespace int
 }
 
 type FuncMap map[string]filterFn
 
 type Parser struct {
-	bytes   []byte
+	lex     *lexer
 	root    *Elem
 	curElem *Elem
 	prevWs  int
@@ -48,17 +48,19 @@ func ParserParse(bytes []byte) string {
 		"css":     css,
 		"extends": extends,
 	}
-	p.bytes = bytes
 	p.root = new(Elem)
 	p.root.tag = []byte("root")
 	p.ids = make(map[string][]*Elem)
 
-	l := NewLexer(p)
-	l.bytes = bytes
+	p.lex = NewLexer(p)
+	p.lex.bytes = bytes
 
-	for l.state != nil {
-		l.state = l.state(l)
+	p.lex.Run()
+	/*
+	for p.lex.state != nil {
+		p.lex.state = p.lex.state(p.lex)
 	}
+	*/
 
 	//go l.Run()
 	//p.receiveTokens(l)
@@ -91,12 +93,15 @@ func ParserParse(bytes []byte) string {
 	return p.root.children[0].String()
 }
 
-func CountWhitespace(t Token) int {
-	return (t.end - t.start) * 2
+func (p *Parser) ReadPos(pos int) rune {
+	if pos >= len(p.lex.bytes) {
+		return eof
+	}
+	return rune(p.lex.bytes[pos])
 }
 
 func (p *Parser) getBytes(t Token) []byte {
-	return p.bytes[t.start:t.end]
+	return p.lex.bytes[t.start:t.end]
 }
 
 func (p *Parser) extendCache(el *Elem) {
@@ -123,7 +128,7 @@ func (p *Parser) NewElem() {
 }
 
 func (p *Parser) AppendAttrKey(t Token) {
-	p.curElem.attr = append(p.curElem.attr, [][][]byte{[][]byte{p.bytes[t.start:t.end], nil}}...)
+	p.curElem.attr = append(p.curElem.attr, [][][]byte{[][]byte{p.lex.bytes[t.start:t.end], nil}}...)
 }
 
 func (p *Parser) AppendText(t Token) {
@@ -151,41 +156,30 @@ func (p *Parser) handleAction(s string) {
 	}
 }
 
-func (p *Parser) handleFilterContentDefault(t Token, l *lexer) {
-	if p.filter.contentWs == 0 {
-		p.filter.contentWs = CountWhitespace(t)
-	}
-
-	if CountWhitespace(t) <= p.filter.ws {
-		var result string
-		// TODO need better filter scheme so no special casing here
-		if string(p.filter.name) == "include" {
-			result = include(p.filter.args, p.filter.ws)
-		} else {
-			// TODO check that p.filter.name is actually in funcMap
-			result = p.funcMap[string(p.filter.name)](p.filter.args, p.filter.content...)
-		}
-		b := []byte(result)
-		// need to evaluate filterFn result against normal lexing
-		p.bytes = append(p.bytes[:p.filter.start], append(b, p.bytes[t.start-1:]...)...)
-		l.bytes = p.bytes
-		// TODO reset pos to delete/insert point for lexer
-		l.pos = p.filter.start
-		// TODO reset start point to beginning of line
-		// TODO have to divide by 2 since CountWhitespace returns * 2 due to inlines and ++ ws for them. abstract this maybe?
-		l.start = l.pos - (p.filter.ws / 2)
-		l.filterDone = true
-	}
-
-	//runtime.Gosched()
+func (p *Parser) handleFilterEnd(t Token) {
+	name := string(p.filter.name)
+	// TODO error if name not in p.funcMap
+	// TODO filterFn should return possible error
+	result := p.funcMap[name](p.filter)
+	
+	//
+	b := []byte(result)
+	
+	// need to evaluate filterFn result against normal lexing
+	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
+	// reset pos to delete/insert point for lexer
+	p.lex.pos = p.filter.start
+	// reset start point to beginning of line
+	// have to divide by 2 since CountWs returns * 2 due to inlines and ++ ws for them.
+	p.lex.start = p.lex.pos - (p.filter.Whitespace / 2)
 }
 
-func (p *Parser) ReceiveToken(t Token, l *lexer) {
+func (p *Parser) ReceiveToken(t Token) {
 	switch t.typ {
 	case TokenElement:
-		if t.start == 0 || rune(p.bytes[t.start-1]) == '\n' {
+		if t.start == 0 || rune(p.lex.bytes[t.start-1]) == '\n' {
 			p.prevWs = p.curWs
-			p.curWs = CountWhitespace(t)
+			p.curWs = CountWs(t)
 		} else { // handle inline
 			p.prevWs = p.curWs
 			p.curWs++
@@ -193,57 +187,61 @@ func (p *Parser) ReceiveToken(t Token, l *lexer) {
 		p.NewElem()
 		break
 	case TokenHashTag:
-		p.curElem.tag = p.bytes[t.start:t.end]
+		p.curElem.tag = p.lex.bytes[t.start:t.end]
 		break
 	case TokenHashId:
-		p.curElem.id = p.bytes[t.start:t.end]
+		p.curElem.id = p.lex.bytes[t.start:t.end]
 		p.ids[string(p.curElem.id)] = append(p.ids[string(p.curElem.id)], p.curElem)
 		break
 	case TokenHashClass:
-		p.curElem.class = append(p.curElem.class, p.bytes[t.start:t.end])
+		p.curElem.class = append(p.curElem.class, p.lex.bytes[t.start:t.end])
 		break
 	case TokenAttrKey:
 		p.AppendAttrKey(t)
 		break
 	case TokenAttrValue:
-		switch p.bytes[t.start] {
+		switch p.lex.bytes[t.start] {
 		case '\'', '"':
 			t.start++
 			t.end--
 			break
 		}
 		// TODO remove escapes
-		p.curElem.attr[len(p.curElem.attr)-1][1] = p.bytes[t.start:t.end]
+		p.curElem.attr[len(p.curElem.attr)-1][1] = p.lex.bytes[t.start:t.end]
 		break
 	case TokenText:
 		p.AppendText(t)
 		break
 	case TokenTextWs:
-		if t.start != 0 && rune(p.bytes[t.start-1]) != '\n' {
+		if t.start != 0 && rune(p.lex.bytes[t.start-1]) != '\n' {
 			p.textWs = 0
 		} else { // multiline text
-			p.textWs = CountWhitespace(t)
+			p.textWs = CountWs(t)
 		}
 		break
 	case TokenComment:
 		p.curElem.isComment = true
 		break
-	case TokenFilter:
-		p.filter = &Filter{start: t.start, ws: CountWhitespace(t)}
+	case TokenFilterStart:
+		p.filter = &Filter{start: t.start, Whitespace: CountWs(t)}
 		break
 	case TokenFilterName:
 		p.filter.name = p.getBytes(t)
 		break
 	case TokenFilterArgs:
-		p.filter.args = p.getBytes(t)
+		p.filter.Args = p.getBytes(t)
 		break
+	case TokenFilterContentWs:
+		if p.filter.contentWs == 0 {
+			p.filter.contentWs = CountWs(t)
+		}
 	case TokenFilterContent:
-		p.filter.content = append(p.filter.content, p.bytes[(t.start+p.filter.contentWs):t.end])
+		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs):t.end])
 		break
-	case TokenFilterContentDefault:
-		p.handleFilterContentDefault(t, l)
+	case TokenFilterEnd:
+		p.handleFilterEnd(t)
 	case TokenAction:
-		action := string(p.bytes[t.start+len(LeftDelim) : t.end])
+		action := string(p.lex.bytes[t.start+len(LeftDelim) : t.end])
 		p.handleAction(action)
 		break
 	case TokenEOF:

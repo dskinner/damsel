@@ -4,37 +4,35 @@ import (
 	"strings"
 )
 
-type filterFn func([]byte, ...[]byte) string
+type filterFn func(*Filter) string
 
-func js(root []byte, files ...[]byte) string {
+func js(filter *Filter) string {
 	s := ""
-	for _, v := range files {
-		s += "<script type=\"text/javascript\" src=\"" + string(root) + string(v) + "\"/>"
+	for _, v := range filter.Content {
+		s += "<script type=\"text/javascript\" src=\"" + string(filter.Args) + string(v) + "\"/>"
 	}
-	//return template.HTML(s)
 	return s
 }
 
-func css(root []byte, files ...[]byte) string {
+func css(filter *Filter) string {
 	s := ""
-	for _, v := range files {
-		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(root) + string(v) + "\">"
+	for _, v := range filter.Content {
+		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(filter.Args) + string(v) + "\">"
 	}
-	//return template.HTML(s)
 	return s
 }
 
-func extends(filename []byte, content ...[]byte) string {
-	bytes := Open(string(filename), TemplateDir)
+func extends(filter *Filter) string {
+	bytes := Open(string(filter.Args), TemplateDir)
 	return string(bytes)
 }
 
-func include(filename []byte, n int) string {
+func include(filter *Filter) string {
 	ws := ""
-	for i := 0; i < n; i++ {
+	for i := 0; i < filter.Whitespace; i++ {
 		ws += "\t"
 	}
-	bytes := Open(string(filename), TemplateDir)
+	bytes := Open(string(filter.Args), TemplateDir)
 	s := strings.Split(string(bytes), "\n")
 	for i, l := range s {
 		if i == 0 { // gets inserted at original whitespace so no need to prepend
