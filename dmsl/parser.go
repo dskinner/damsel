@@ -1,5 +1,17 @@
 package dmsl
 
+import (
+	"fmt"
+)
+
+type FilterError struct {
+	Value string
+}
+
+func (e *FilterError) Error() string {
+	return fmt.Sprintf("damsel: filter \"%s\" unknown.", e.Value)
+}
+
 type ActionType int
 
 const (
@@ -41,12 +53,13 @@ type Parser struct {
 	funcMap FuncMap
 }
 
-func ParserParse(bytes []byte) string {
+func ParserParse(bytes []byte) (result string, err error) {
 	p := new(Parser)
 	p.funcMap = FuncMap{
 		"js":      js,
 		"css":     css,
 		"extends": extends,
+		"include": include,
 	}
 	p.root = new(Elem)
 	p.root.tag = []byte("root")
@@ -55,15 +68,13 @@ func ParserParse(bytes []byte) string {
 	p.lex = NewLexer(p)
 	p.lex.bytes = bytes
 
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+	
 	p.lex.Run()
-	/*
-	for p.lex.state != nil {
-		p.lex.state = p.lex.state(p.lex)
-	}
-	*/
-
-	//go l.Run()
-	//p.receiveTokens(l)
 
 	// combine #ids
 	for _, elems := range p.ids {
@@ -90,7 +101,8 @@ func ParserParse(bytes []byte) string {
 		}
 	}
 
-	return p.root.children[0].String()
+	result = p.root.children[0].String()
+	return result, err
 }
 
 func (p *Parser) ReadPos(pos int) rune {
@@ -120,10 +132,20 @@ func (p *Parser) NewElem() {
 		p.curElem = p.cache[p.prevWs].parent.SubElement()
 	} else if p.curWs < p.prevWs {
 		p.curElem = p.cache[p.curWs].parent.SubElement()
+		// TODO is this some old archaic bit not needed anymore?
+		// original issue was assuring that ident line up didn't mis match, so
+		// 0
+		//   1
+		//     2
+		//       3
+		//   4
+		//       5
+		// where 5 wouldn't match anything except 4
 		p.cache = p.cache[:p.curWs+1]
 	}
 
 	p.curElem.ws = p.curWs
+	// TODO can i just setup a findByWhitespace on Elem and call on p.root instead of maintaining a slice
 	p.extendCache(p.curElem)
 }
 
@@ -158,7 +180,10 @@ func (p *Parser) handleAction(s string) {
 
 func (p *Parser) handleFilterEnd(t Token) {
 	name := string(p.filter.name)
-	// TODO error if name not in p.funcMap
+	
+	if p.funcMap[name] == nil {
+		panic(&FilterError{name})
+	}
 	// TODO filterFn should return possible error
 	result := p.funcMap[name](p.filter)
 	
@@ -167,11 +192,13 @@ func (p *Parser) handleFilterEnd(t Token) {
 	
 	// need to evaluate filterFn result against normal lexing
 	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
+	
 	// reset pos to delete/insert point for lexer
 	p.lex.pos = p.filter.start
 	// reset start point to beginning of line
 	// have to divide by 2 since CountWs returns * 2 due to inlines and ++ ws for them.
-	p.lex.start = p.lex.pos - (p.filter.Whitespace / 2)
+	//p.lex.start = p.lex.pos - (p.filter.Whitespace / 2)
+	p.lex.start = p.filter.start
 }
 
 func (p *Parser) ReceiveToken(t Token) {
@@ -236,7 +263,8 @@ func (p *Parser) ReceiveToken(t Token) {
 			p.filter.contentWs = CountWs(t)
 		}
 	case TokenFilterContent:
-		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs):t.end])
+		// TODO work on contentWs/2
+		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs/2):t.end])
 		break
 	case TokenFilterEnd:
 		p.handleFilterEnd(t)

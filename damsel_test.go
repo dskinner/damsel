@@ -20,13 +20,13 @@ func _TestParserParse(t *testing.T) {
 	%div c
 	`
 
-	r := dmsl.ParserParse([]byte(s))
+	r, _ := dmsl.ParserParse([]byte(s))
 	fmt.Println(r)
 }
 
 func _TestImpliedEnd(t *testing.T) {
 	b, _ := ioutil.ReadFile(filepath.Join(TestsDir, "bigtable_noend.dmsl"))
-	r := dmsl.ParserParse(b)
+	r, _ := dmsl.ParserParse(b)
 	fmt.Println(r)
 }
 
@@ -91,7 +91,7 @@ func test(t *testing.T, s string, data interface{}) {
 
 	if data == nil {
 		b, _ := ioutil.ReadFile(filepath.Join(TestsDir, s+".dmsl"))
-		r := dmsl.ParserParse(b)
+		r, _ := dmsl.ParserParse(b)
 		// TODO
 		r = "<!DOCTYPE html>" + strings.TrimSpace(r)
 		if r != html {
@@ -99,7 +99,7 @@ func test(t *testing.T, s string, data interface{}) {
 			t.Fatal("parse failed:", s)
 		}
 	} else {
-		tmpl := dmsl.ParseFile(s + ".dmsl")
+		tmpl, _ := dmsl.ParseFile(s + ".dmsl")
 		r, err := tmpl.Execute(data)
 		r = strings.TrimSpace(r)
 		if r != html {

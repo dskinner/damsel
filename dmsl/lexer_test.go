@@ -3,6 +3,7 @@ package dmsl
 import (
 	"testing"
 	"fmt"
+	"io/ioutil"
 )
 
 type TokenPrinter struct {
@@ -17,6 +18,10 @@ func (t *TokenPrinter) ReceiveToken(tkn Token) {
 		fmt.Println(string(t.l.bytes[tkn.start:tkn.end]))
 	}
 }
+
+type TokenNil struct {}
+
+func (t *TokenNil) ReceiveToken(tkn Token) {}
 
 func Test_lexer1(t *testing.T) {
 	s := `
@@ -34,4 +39,19 @@ func Test_lexer1(t *testing.T) {
 	l.bytes = []byte(s)
 	tknPrinter.l = l
 	l.Run()
+}
+
+func Benchmark_bigtable2(b *testing.B) {
+	b.StopTimer()
+	bytes, err := ioutil.ReadFile("../tests/bigtable2.dmsl")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		tknNil := new(TokenNil)
+		l := NewLexer(tknNil)
+		l.bytes = bytes
+		l.Run()
+	}
 }

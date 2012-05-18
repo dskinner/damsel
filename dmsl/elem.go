@@ -36,16 +36,15 @@ type Elem struct {
 }
 
 func (el *Elem) SubElement() *Elem {
-	newElem := new(Elem)
-	newElem.tag = DefaultTag
-	newElem.parent = el
+	newElem := &Elem{tag: DefaultTag, parent: el}
 	el.children = append(el.children, newElem)
 	return newElem
 }
 
 func (el *Elem) String() string {
-	buf := new(bytes.Buffer)
-	el.ToString(buf, Pprint)
+	//buf := new(bytes.Buffer)
+	var buf bytes.Buffer
+	el.ToString(&buf, Pprint)
 	return buf.String()
 }
 

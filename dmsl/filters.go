@@ -7,7 +7,11 @@ import (
 type filterFn func(*Filter) string
 
 func js(filter *Filter) string {
-	s := ""
+	ws := ""
+	for i := 0; i < filter.Whitespace/2; i++ {
+		ws += "\t"
+	}
+	s := ws
 	for _, v := range filter.Content {
 		s += "<script type=\"text/javascript\" src=\"" + string(filter.Args) + string(v) + "\"/>"
 	}
@@ -15,7 +19,11 @@ func js(filter *Filter) string {
 }
 
 func css(filter *Filter) string {
-	s := ""
+	ws := ""
+	for i := 0; i < filter.Whitespace/2; i++ {
+		ws += "\t"
+	}
+	s := ws
 	for _, v := range filter.Content {
 		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(filter.Args) + string(v) + "\">"
 	}
@@ -29,15 +37,12 @@ func extends(filter *Filter) string {
 
 func include(filter *Filter) string {
 	ws := ""
-	for i := 0; i < filter.Whitespace; i++ {
+	for i := 0; i < filter.Whitespace/2; i++ {
 		ws += "\t"
 	}
 	bytes := Open(string(filter.Args), TemplateDir)
 	s := strings.Split(string(bytes), "\n")
 	for i, l := range s {
-		if i == 0 { // gets inserted at original whitespace so no need to prepend
-			continue
-		}
 		s[i] = ws + l
 	}
 	return strings.Join(s, "\n")

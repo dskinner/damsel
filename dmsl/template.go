@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 )
 
@@ -22,6 +21,7 @@ func Delims(l, r string) {
 
 type Template struct {
 	html *template.Template
+	Result string
 }
 
 func New() *Template {
@@ -40,29 +40,30 @@ func ParseString(src string) *Template {
 	return Parse([]byte(src))
 }
 
-func (t *Template) Parse(src []byte) *Template {
+func (t *Template) Parse(src []byte) (*Template, error) {
 	//s := parse.Parse(src, TemplateDir)
-	s := ParserParse(src)
+	s, err := ParserParse(src)
 	if Debug {
 		fmt.Println(s)
 	}
-	t.html.Parse(s)
-	return t
+	t.Result = DocType+s
+	t.html.Parse(t.Result)
+	return t, err
 }
 
-func ParseFile(filename string) *Template {
+func ParseFile(filename string) (*Template, error) {
 	t := New()
-	t.ParseFile(filename)
-	return t
+	_, err := t.ParseFile(filename)
+	return t, err
 }
 
-func (t *Template) ParseFile(filename string) *Template {
+func (t *Template) ParseFile(filename string) (*Template, error) {
 	b, err := ioutil.ReadFile(filepath.Join(TemplateDir, filename))
 	if err != nil {
-		log.Fatal(err)
+		return t, err
 	}
-	t.Parse(b)
-	return t
+	_, err = t.Parse(b)
+	return t, err
 }
 
 func (t *Template) Execute(data interface{}) (string, error) {

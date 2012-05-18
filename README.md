@@ -102,6 +102,12 @@ Also keep in mind that trailing whitespace is preserved!
 
 ### Integration with html/template
 
+First off, you need to set dmsl.ActionHandler to the builtin dmsl.ActionGoTemplate
+
+```
+dmsl.ActionHandler = dmsl.ActionGoTemplate
+```
+
 Calling dmsl.ParseFile or dmsl.Parse will return an instance of dmsl.Template that has already parsed the dmsl and loaded the result in an html/template.Template.
 Call the Execute(interface{}) method from there, given [10][10]int for example:
 
