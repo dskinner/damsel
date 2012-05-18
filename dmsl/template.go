@@ -20,7 +20,7 @@ func Delims(l, r string) {
 }
 
 type Template struct {
-	html *template.Template
+	html   *template.Template
 	Result string
 }
 
@@ -46,7 +46,7 @@ func (t *Template) Parse(src []byte) (*Template, error) {
 	if Debug {
 		fmt.Println(s)
 	}
-	t.Result = DocType+s
+	t.Result = DocType + s
 	t.html.Parse(t.Result)
 	return t, err
 }

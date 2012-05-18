@@ -1,9 +1,9 @@
 package dmsl
 
 import (
-	"testing"
 	"fmt"
 	"io/ioutil"
+	"testing"
 )
 
 type TokenPrinter struct {
@@ -13,13 +13,13 @@ type TokenPrinter struct {
 func (t *TokenPrinter) ReceiveToken(tkn Token) {
 	fmt.Println(TokenString[tkn.typ])
 	if tkn.typ == TokenFilterContentWs {
-		fmt.Println(tkn.end-tkn.start)
+		fmt.Println(tkn.end - tkn.start)
 	} else {
 		fmt.Println(string(t.l.bytes[tkn.start:tkn.end]))
 	}
 }
 
-type TokenNil struct {}
+type TokenNil struct{}
 
 func (t *TokenNil) ReceiveToken(tkn Token) {}
 

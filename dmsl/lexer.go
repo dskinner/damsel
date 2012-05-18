@@ -31,23 +31,23 @@ type Token struct {
 }
 
 var TokenString = map[TokenType]string{
-	TokenElement:              "Element",
-	TokenHashTag:              "HashTag",
-	TokenHashId:               "HashId",
-	TokenHashClass:            "HashClass",
-	TokenAttrKey:              "AttrKey",
-	TokenAttrValue:            "AttrValue",
-	TokenText:                 "Text",
-	TokenTextWs:               "TextWs",
-	TokenComment:              "Comment",
-	TokenFilterStart:          "FilterStart",
-	TokenFilterName:           "FilterName",
-	TokenFilterArgs:           "FilterArgs",
-	TokenFilterContent:        "FilterContent",
-	TokenFilterContentWs:      "FilterContentWs",
-	TokenFilterEnd:            "FilterEnd",
-	TokenAction:               "Action",
-	TokenEOF:                  "EOF",
+	TokenElement:         "Element",
+	TokenHashTag:         "HashTag",
+	TokenHashId:          "HashId",
+	TokenHashClass:       "HashClass",
+	TokenAttrKey:         "AttrKey",
+	TokenAttrValue:       "AttrValue",
+	TokenText:            "Text",
+	TokenTextWs:          "TextWs",
+	TokenComment:         "Comment",
+	TokenFilterStart:     "FilterStart",
+	TokenFilterName:      "FilterName",
+	TokenFilterArgs:      "FilterArgs",
+	TokenFilterContent:   "FilterContent",
+	TokenFilterContentWs: "FilterContentWs",
+	TokenFilterEnd:       "FilterEnd",
+	TokenAction:          "Action",
+	TokenEOF:             "EOF",
 }
 
 type TokenReceiver interface {
@@ -57,12 +57,18 @@ type TokenReceiver interface {
 type stateFn func(*lexer) stateFn
 
 type lexer struct {
-	bytes      []byte
-	state      stateFn
-	pos        int
-	start      int
-	ident      int
-	receiver   TokenReceiver
+	bytes []byte
+	state stateFn
+	pos   int
+	start int
+
+	// In same cases, we want to save the current start position and restore it later.
+	// For simple cases, this can be easier then spinning off a second lexer to handle
+	// a specific set of input. See lexer.save() and lexer.restore()
+	saveStart int
+
+	ident    int
+	receiver TokenReceiver
 }
 
 func NewLexer(receiver TokenReceiver) *lexer {
@@ -88,6 +94,14 @@ func (l *lexer) next() {
 
 func (l *lexer) reset() {
 	l.start = l.pos
+}
+
+func (l *lexer) save() {
+	l.saveStart = l.start
+}
+
+func (l *lexer) restore() {
+	l.start = l.saveStart
 }
 
 func (l *lexer) rune() rune {
@@ -279,6 +293,7 @@ func lexText(l *lexer) stateFn {
 			l.discard()
 			return lexWhiteSpace
 		case '{': // TODO use correct delimiters!!!!
+			l.save()
 			l.reset()
 			return lexAction
 		case eof:
@@ -296,6 +311,7 @@ func lexAction(l *lexer) stateFn {
 		switch l.rune() {
 		case '}':
 			l.emit(TokenAction)
+			l.restore()
 			return lexText
 		case eof:
 			return nil
@@ -355,7 +371,7 @@ func lexFilterWhiteSpace(l *lexer) stateFn {
 			l.discard()
 			break
 		default:
-			if (l.pos - l.start) * 2 <= l.ident {
+			if (l.pos-l.start)*2 <= l.ident {
 				l.emit(TokenFilterEnd)
 				l.discardIdent() // discards previously saved ident level
 				// dont reset position so lexWhiteSpace is aware of current ident level

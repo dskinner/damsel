@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dskinner/damsel/dmsl"
-	"os"
 	"log"
- 	"runtime/pprof"
+	"os"
+	"runtime/pprof"
 )
 
 var filename = flag.String("f", "", "file to parse")
@@ -24,11 +24,11 @@ func main() {
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
-		
+
 		dmsl.ParserParse(dmsl.Open("tests/bigtable2.dmsl", ""))
 		return
 	}
-		
+
 	if *filename == "" {
 		flag.Usage()
 		return

@@ -73,7 +73,7 @@ func ParserParse(bytes []byte) (result string, err error) {
 			err = r.(error)
 		}
 	}()
-	
+
 	p.lex.Run()
 
 	// combine #ids
@@ -180,19 +180,19 @@ func (p *Parser) handleAction(s string) {
 
 func (p *Parser) handleFilterEnd(t Token) {
 	name := string(p.filter.name)
-	
+
 	if p.funcMap[name] == nil {
 		panic(&FilterError{name})
 	}
 	// TODO filterFn should return possible error
 	result := p.funcMap[name](p.filter)
-	
+
 	//
 	b := []byte(result)
-	
+
 	// need to evaluate filterFn result against normal lexing
 	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
-	
+
 	// reset pos to delete/insert point for lexer
 	p.lex.pos = p.filter.start
 	// reset start point to beginning of line
