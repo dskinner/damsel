@@ -12,6 +12,16 @@ func (e *FilterError) Error() string {
 	return fmt.Sprintf("damsel: filter \"%s\" unknown.", e.Value)
 }
 
+/*
+type ActionType int
+
+const (
+	ActionStart ActionType = iota
+	ActionEnd
+	ActionIgnore
+)
+*/
+
 type ActionType int
 
 const (
@@ -20,10 +30,15 @@ const (
 	ActionIgnore
 )
 
-type actionFn func(string) ActionType
+type Action struct {
+	typ ActionType
+	value string
+}
 
-func defActionHandler(s string) ActionType {
-	return ActionIgnore
+type actionFn func(string) Action
+
+func defActionHandler(s string) Action {
+	return Action{ActionIgnore, ""}
 }
 
 var ActionHandler actionFn = defActionHandler
@@ -164,16 +179,19 @@ func (p *Parser) AppendText(t Token) {
 }
 
 func (p *Parser) handleAction(s string) {
-	switch ActionHandler(s) {
+	switch a := ActionHandler(s); a.typ {
 	case ActionStart:
-		p.curElem.actionEnds++
+		//p.curElem.actionEnds++
+		p.curElem.actionEnds = append(p.curElem.actionEnds, a)
 	case ActionEnd:
 		if p.textWs > p.prevWs {
-			p.cache[p.prevWs].actionEnds--
+			p.cache[p.prevWs].actionEnds = p.cache[p.prevWs].actionEnds[:len(p.cache[p.prevWs].actionEnds)-1]
 		} else if p.textWs == p.prevWs {
-			p.cache[p.prevWs].parent.actionEnds--
+			//p.cache[p.prevWs].parent.actionEnds--
+			p.cache[p.prevWs].parent.actionEnds = p.cache[p.prevWs].parent.actionEnds[:len(p.cache[p.prevWs].parent.actionEnds)-1]
 		} else if p.textWs < p.prevWs { // TODO this may be wrong, refer to other areas in code for how this is done
-			p.cache[p.textWs].parent.actionEnds--
+			//p.cache[p.textWs].parent.actionEnds--
+			p.cache[p.textWs].parent.actionEnds = p.cache[p.textWs].parent.actionEnds[:len(p.cache[p.textWs].parent.actionEnds)-1]
 		}
 	}
 }

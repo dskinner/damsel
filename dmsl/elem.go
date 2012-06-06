@@ -31,7 +31,10 @@ type Elem struct {
 	attr       [][][]byte
 	text       [][]byte
 	tail       [][]byte
-	actionEnds int
+	
+	//actionEnds int
+	actionEnds []Action
+	
 	isComment  bool
 }
 
@@ -164,8 +167,13 @@ func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 		}
 	}
 
+	/*
 	for i := 0; i < el.actionEnds; i++ {
 		buf.WriteString("{end}")
+	}
+	*/
+	for _, a := range el.actionEnds {
+		buf.WriteString(LeftDelim+a.value+RightDelim)
 	}
 
 	if pprint && len(el.children) != 0 {

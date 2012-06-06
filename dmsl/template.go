@@ -69,5 +69,5 @@ func (t *Template) ParseFile(filename string) (*Template, error) {
 func (t *Template) Execute(data interface{}) (string, error) {
 	buf := &bytes.Buffer{}
 	err := t.html.Execute(buf, data)
-	return DocType + buf.String(), err
+	return buf.String(), err
 }

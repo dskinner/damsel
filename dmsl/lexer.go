@@ -161,7 +161,8 @@ func lexWhiteSpace(l *lexer) stateFn {
 			return lexText
 		}
 	}
-	return lexWhiteSpace
+	
+	panic("unreachable")
 }
 
 func lexComment(l *lexer) stateFn {
@@ -177,7 +178,7 @@ func lexComment(l *lexer) stateFn {
 		}
 	}
 
-	return lexComment
+	panic("unreachable")
 }
 
 func lexHash(l *lexer) stateFn {
@@ -202,7 +203,8 @@ func lexHash(l *lexer) stateFn {
 			return lexWhiteSpace
 		}
 	}
-	return lexHash
+	
+	panic("unreachable")
 }
 
 func lexHashTag(l *lexer) stateFn {
@@ -215,7 +217,8 @@ func lexHashTag(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexHashTag
+	
+	panic("unreachable")
 }
 
 func lexHashId(l *lexer) stateFn {
@@ -228,7 +231,8 @@ func lexHashId(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexHashId
+	
+	panic("unreachable")
 }
 
 func lexHashClass(l *lexer) stateFn {
@@ -241,7 +245,8 @@ func lexHashClass(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexHashClass
+	
+	panic("unreachable")
 }
 
 func lexAttributeKey(l *lexer) stateFn {
@@ -261,7 +266,8 @@ func lexAttributeKey(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexAttributeKey
+	
+	panic("unreachable")
 }
 
 func lexAttributeValue(l *lexer) stateFn {
@@ -282,7 +288,8 @@ func lexAttributeValue(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexAttributeValue
+	
+	panic("unreachable")
 }
 
 func lexText(l *lexer) stateFn {
@@ -303,7 +310,8 @@ func lexText(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexText
+	
+	panic("unreachable")
 }
 
 func lexAction(l *lexer) stateFn {
@@ -319,7 +327,8 @@ func lexAction(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexAction
+	
+	panic("unreachable")
 }
 
 // lexFilter stands alone for parsing, not mingling with lexWhiteSpace until
@@ -341,7 +350,8 @@ func lexFilter(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexFilter
+	
+	panic("unreachable")
 }
 
 func lexFilterArgs(l *lexer) stateFn {
@@ -357,7 +367,8 @@ func lexFilterArgs(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	return lexFilterArgs
+	
+	panic("unreachable")
 }
 
 func lexFilterWhiteSpace(l *lexer) stateFn {
@@ -381,7 +392,8 @@ func lexFilterWhiteSpace(l *lexer) stateFn {
 			return lexFilterContent
 		}
 	}
-	return lexFilterWhiteSpace
+	
+	panic("unreachable")
 }
 
 func lexFilterContent(l *lexer) stateFn {
@@ -397,5 +409,5 @@ func lexFilterContent(l *lexer) stateFn {
 		}
 	}
 
-	return lexFilterContent
+	panic("unreachable")
 }

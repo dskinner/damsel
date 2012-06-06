@@ -1,17 +1,35 @@
 package dmsl
 
-import "strings"
+import (
+	"strings"
+	"fmt"
+)
 
-func ActionGoTemplate(s string) ActionType {
+/* html/template */
+
+var GoActionEnd Action = Action{ActionStart, "end"}
+
+func ActionGoTemplate(s string) Action {
 	switch {
 	case strings.HasPrefix(s, "range "):
-		return ActionStart
+		return GoActionEnd
 	case strings.HasPrefix(s, "if "):
-		return ActionStart
+		return GoActionEnd
 	case strings.HasPrefix(s, "with "):
-		return ActionStart
+		return GoActionEnd
 	case s == "end":
-		return ActionEnd
+		return Action{ActionEnd, ""}
 	}
-	return ActionIgnore
+	return Action{ActionIgnore, ""}
+}
+
+
+/* moustache */
+
+func ActionMustache(s string) Action {
+	fmt.Println(s)
+	if strings.HasPrefix(s, "{#") {
+		return Action{ActionStart, "{/"+s[2:]+"}"}
+	}
+	return Action{ActionIgnore, ""}
 }
