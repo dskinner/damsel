@@ -12,37 +12,6 @@ func (e *FilterError) Error() string {
 	return fmt.Sprintf("damsel: filter \"%s\" unknown.", e.Value)
 }
 
-/*
-type ActionType int
-
-const (
-	ActionStart ActionType = iota
-	ActionEnd
-	ActionIgnore
-)
-*/
-
-type ActionType int
-
-const (
-	ActionStart ActionType = iota
-	ActionEnd
-	ActionIgnore
-)
-
-type Action struct {
-	typ ActionType
-	value string
-}
-
-type actionFn func(string) Action
-
-func defActionHandler(s string) Action {
-	return Action{ActionIgnore, ""}
-}
-
-var ActionHandler actionFn = defActionHandler
-
 type Filter struct {
 	name       []byte
 	start      int
@@ -54,7 +23,78 @@ type Filter struct {
 
 type FuncMap map[string]filterFn
 
-type Parser struct {
+var DefaultFuncMap = map[string]filterFn {
+	"js": js,
+	"css": css,
+	"extends": extends,
+	"include": include,
+}
+
+type FilterParser struct {
+	lex     *lexer
+	filter  *Filter
+	funcMap FuncMap
+}
+
+func FilterParse(bytes []byte) ([]byte, error) {
+	p := new(FilterParser)
+	p.funcMap = DefaultFuncMap
+	p.lex = NewLexer(p)
+	p.lex.bytes = bytes
+	p.lex.Run()
+	// TODO real errors
+	return p.lex.bytes, nil
+}
+
+func (p *FilterParser) handleFilterEnd(t Token) {
+	name := string(p.filter.name)
+
+	if p.funcMap[name] == nil {
+		panic(&FilterError{name})
+	}
+	// TODO filterFn should return possible error
+	result := p.funcMap[name](p.filter)
+
+	// TODO just use []byte
+	b := []byte(result)
+
+	// need to evaluate filterFn result against normal lexing
+	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
+
+	// reset pos and start to delete/insert point for lexer
+	p.lex.pos = p.filter.start
+	p.lex.start = p.filter.start
+}
+
+
+func (p *FilterParser) ReceiveToken(t Token) {
+	switch t.typ {
+	case TokenFilterStart:
+		p.filter = &Filter{start: t.start, Whitespace: CountWs(t)}
+		break
+	case TokenFilterName:
+		p.filter.name = p.lex.bytes[t.start:t.end]
+		break
+	case TokenFilterArgs:
+		p.filter.Args = p.lex.bytes[t.start:t.end]
+		break
+	case TokenFilterContentWs:
+		if p.filter.contentWs == 0 {
+			p.filter.contentWs = CountWs(t)
+		}
+	case TokenFilterContent:
+		// TODO work on contentWs/2
+		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs/2):t.end])
+		break
+	case TokenFilterEnd:
+		p.handleFilterEnd(t)
+	case TokenEOF:
+		// TODO
+		break
+	}
+}
+
+type DocParser struct {
 	lex     *lexer
 	root    *Elem
 	curElem *Elem
@@ -63,19 +103,11 @@ type Parser struct {
 	textWs  int
 	ids     map[string][]*Elem
 	cache   []*Elem
-	filter  *Filter
 	action  []byte
-	funcMap FuncMap
 }
 
-func ParserParse(bytes []byte) (result string, err error) {
-	p := new(Parser)
-	p.funcMap = FuncMap{
-		"js":      js,
-		"css":     css,
-		"extends": extends,
-		"include": include,
-	}
+func DocParse(bytes []byte) (result string, err error) {
+	p := new(DocParser)
 	p.root = new(Elem)
 	p.root.tag = []byte("root")
 	p.ids = make(map[string][]*Elem)
@@ -83,11 +115,13 @@ func ParserParse(bytes []byte) (result string, err error) {
 	p.lex = NewLexer(p)
 	p.lex.bytes = bytes
 
+	/*
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
 		}
 	}()
+	*/
 
 	p.lex.Run()
 
@@ -120,25 +154,21 @@ func ParserParse(bytes []byte) (result string, err error) {
 	return result, err
 }
 
-func (p *Parser) ReadPos(pos int) rune {
+func (p *DocParser) ReadPos(pos int) rune {
 	if pos >= len(p.lex.bytes) {
 		return eof
 	}
 	return rune(p.lex.bytes[pos])
 }
 
-func (p *Parser) getBytes(t Token) []byte {
-	return p.lex.bytes[t.start:t.end]
-}
-
-func (p *Parser) extendCache(el *Elem) {
+func (p *DocParser) extendCache(el *Elem) {
 	for i := el.ws - len(p.cache) + 1; i > 0; i-- {
 		p.cache = append(p.cache, nil)
 	}
 	p.cache[el.ws] = el
 }
 
-func (p *Parser) NewElem() {
+func (p *DocParser) NewElem() {
 	if p.curWs == 0 {
 		p.curElem = p.root.SubElement()
 	} else if p.curWs > p.prevWs {
@@ -164,62 +194,21 @@ func (p *Parser) NewElem() {
 	p.extendCache(p.curElem)
 }
 
-func (p *Parser) AppendAttrKey(t Token) {
+func (p *DocParser) AppendAttrKey(t Token) {
 	p.curElem.attr = append(p.curElem.attr, [][][]byte{[][]byte{p.lex.bytes[t.start:t.end], nil}}...)
 }
 
-func (p *Parser) AppendText(t Token) {
+func (p *DocParser) AppendText(t Token) {
 	if p.textWs == 0 || p.textWs > p.curWs {
-		p.curElem.text = append(p.curElem.text, p.getBytes(t))
+		p.curElem.text = append(p.curElem.text, p.lex.bytes[t.start:t.end])
 	} else if p.textWs == p.curWs {
-		p.curElem.tail = append(p.curElem.tail, p.getBytes(t))
+		p.curElem.tail = append(p.curElem.tail, p.lex.bytes[t.start:t.end])
 	} else if p.textWs < p.curWs {
-		p.cache[p.textWs].tail = append(p.cache[p.textWs].tail, p.getBytes(t))
+		p.cache[p.textWs].tail = append(p.cache[p.textWs].tail, p.lex.bytes[t.start:t.end])
 	}
 }
 
-func (p *Parser) handleAction(s string) {
-	switch a := ActionHandler(s); a.typ {
-	case ActionStart:
-		//p.curElem.actionEnds++
-		p.curElem.actionEnds = append(p.curElem.actionEnds, a)
-	case ActionEnd:
-		if p.textWs > p.prevWs {
-			p.cache[p.prevWs].actionEnds = p.cache[p.prevWs].actionEnds[:len(p.cache[p.prevWs].actionEnds)-1]
-		} else if p.textWs == p.prevWs {
-			//p.cache[p.prevWs].parent.actionEnds--
-			p.cache[p.prevWs].parent.actionEnds = p.cache[p.prevWs].parent.actionEnds[:len(p.cache[p.prevWs].parent.actionEnds)-1]
-		} else if p.textWs < p.prevWs { // TODO this may be wrong, refer to other areas in code for how this is done
-			//p.cache[p.textWs].parent.actionEnds--
-			p.cache[p.textWs].parent.actionEnds = p.cache[p.textWs].parent.actionEnds[:len(p.cache[p.textWs].parent.actionEnds)-1]
-		}
-	}
-}
-
-func (p *Parser) handleFilterEnd(t Token) {
-	name := string(p.filter.name)
-
-	if p.funcMap[name] == nil {
-		panic(&FilterError{name})
-	}
-	// TODO filterFn should return possible error
-	result := p.funcMap[name](p.filter)
-
-	//
-	b := []byte(result)
-
-	// need to evaluate filterFn result against normal lexing
-	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
-
-	// reset pos to delete/insert point for lexer
-	p.lex.pos = p.filter.start
-	// reset start point to beginning of line
-	// have to divide by 2 since CountWs returns * 2 due to inlines and ++ ws for them.
-	//p.lex.start = p.lex.pos - (p.filter.Whitespace / 2)
-	p.lex.start = p.filter.start
-}
-
-func (p *Parser) ReceiveToken(t Token) {
+func (p *DocParser) ReceiveToken(t Token) {
 	switch t.typ {
 	case TokenElement:
 		if t.start == 0 || rune(p.lex.bytes[t.start-1]) == '\n' {
@@ -266,29 +255,6 @@ func (p *Parser) ReceiveToken(t Token) {
 		break
 	case TokenComment:
 		p.curElem.isComment = true
-		break
-	case TokenFilterStart:
-		p.filter = &Filter{start: t.start, Whitespace: CountWs(t)}
-		break
-	case TokenFilterName:
-		p.filter.name = p.getBytes(t)
-		break
-	case TokenFilterArgs:
-		p.filter.Args = p.getBytes(t)
-		break
-	case TokenFilterContentWs:
-		if p.filter.contentWs == 0 {
-			p.filter.contentWs = CountWs(t)
-		}
-	case TokenFilterContent:
-		// TODO work on contentWs/2
-		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs/2):t.end])
-		break
-	case TokenFilterEnd:
-		p.handleFilterEnd(t)
-	case TokenAction:
-		action := string(p.lex.bytes[t.start+len(LeftDelim) : t.end])
-		p.handleAction(action)
 		break
 	case TokenEOF:
 		// TODO

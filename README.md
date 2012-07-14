@@ -100,6 +100,14 @@ This would insert a space before One.
 
 Also keep in mind that trailing whitespace is preserved!
 
+Whitespace can be preserved using `
+
+```
+	%p `%a[this][isn't][real]
+and whitespace is preserved
+    as is`
+```
+
 ### Integration with html/template
 
 First off, you need to set dmsl.ActionHandler to the builtin dmsl.ActionGoTemplate

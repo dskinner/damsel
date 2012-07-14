@@ -23,9 +23,10 @@ func css(filter *Filter) string {
 	for i := 0; i < filter.Whitespace/2; i++ {
 		ws += "\t"
 	}
-	s := ws
+	s := ""
 	for _, v := range filter.Content {
-		s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(filter.Args) + string(v) + "\">"
+		//s += "<link type=\"text/css\" rel=\"stylesheet\" href=\"" + string(filter.Args) + string(v) + "\">"
+		s += ws + "%link[rel=stylesheet][href=\"" + string(filter.Args) + string(v) + "\"]\n"
 	}
 	return s
 }

@@ -7,12 +7,14 @@ import (
 	"log"
 	"os"
 	"runtime/pprof"
+	"encoding/json"
 )
 
 var filename = flag.String("f", "", "file to parse")
 var debug = flag.Bool("d", false, "print parser debug info")
 var pprint = flag.Bool("pprint", false, "pretty print output")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var data = flag.String("data", "", "json string to decode as data for template")
 
 func main() {
 	flag.Parse()
@@ -25,7 +27,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 
-		dmsl.ParserParse(dmsl.Open("tests/bigtable2.dmsl", ""))
+		dmsl.DocParse(dmsl.Open("tests/bigtable2.dmsl", ""))
 		return
 	}
 
@@ -39,10 +41,20 @@ func main() {
 	}
 
 	if *debug {
-		fmt.Println(dmsl.ParserParse(dmsl.Open(*filename, "")))
+		r, err := dmsl.DocParse(dmsl.Open(*filename, ""))
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println(r)
 	} else {
 		t, err := dmsl.ParseFile(*filename)
-		result, err := t.Execute(nil)
+
+		var d interface{}
+		if err = json.Unmarshal([]byte(*data), &d); err != nil {
+			fmt.Println(err.Error())
+		}
+
+		result, err := t.Execute(d.([]interface{}))
 		if err != nil {
 			fmt.Println(err)
 		} else {

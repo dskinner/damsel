@@ -157,11 +157,17 @@ func lexWhiteSpace(l *lexer) stateFn {
 			if l.rune() == '\\' {
 				l.discard()
 			}
+			if l.rune() == '`' {
+				l.discard()
+				l.reset()
+				return lexTextEscape
+			}
+
 			l.reset()
 			return lexText
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -203,7 +209,7 @@ func lexHash(l *lexer) stateFn {
 			return lexWhiteSpace
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -217,7 +223,7 @@ func lexHashTag(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -231,7 +237,7 @@ func lexHashId(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -245,7 +251,7 @@ func lexHashClass(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -266,7 +272,7 @@ func lexAttributeKey(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -288,7 +294,22 @@ func lexAttributeValue(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
+	panic("unreachable")
+}
+
+func lexTextEscape(l *lexer) stateFn {
+	for {
+		switch l.rune() {
+		case '`':
+			l.emit(TokenText)
+			l.discard()
+			return lexWhiteSpace
+		default:
+			l.next()
+		}
+	}
+
 	panic("unreachable")
 }
 
@@ -310,7 +331,7 @@ func lexText(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -327,7 +348,7 @@ func lexAction(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -350,7 +371,7 @@ func lexFilter(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -367,7 +388,7 @@ func lexFilterArgs(l *lexer) stateFn {
 			l.next()
 		}
 	}
-	
+
 	panic("unreachable")
 }
 
@@ -392,7 +413,7 @@ func lexFilterWhiteSpace(l *lexer) stateFn {
 			return lexFilterContent
 		}
 	}
-	
+
 	panic("unreachable")
 }
 

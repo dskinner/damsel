@@ -2,7 +2,6 @@ package dmsl
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"path/filepath"
@@ -19,55 +18,74 @@ func Delims(l, r string) {
 	RightDelim = r
 }
 
+func Mod(i, n int) bool {
+	if (i%n) == 0 {
+		return true
+	}
+	return false
+}
+
+var funcMap = template.FuncMap {
+	"Mod": Mod,
+}
+
 type Template struct {
-	html   *template.Template
+	Html   *template.Template
 	Result string
 }
 
 func New() *Template {
 	t := &Template{}
-	t.html = template.New("").Delims(LeftDelim, RightDelim)
+	t.Html = template.New("").Delims(LeftDelim, RightDelim).Funcs(funcMap)
 	return t
 }
 
-func Parse(src []byte) *Template {
+func Parse(src []byte) (*Template, error) {
 	t := New()
-	t.Parse(src)
-	return t
-}
-
-func ParseString(src string) *Template {
-	return Parse([]byte(src))
-}
-
-func (t *Template) Parse(src []byte) (*Template, error) {
-	//s := parse.Parse(src, TemplateDir)
-	s, err := ParserParse(src)
-	if Debug {
-		fmt.Println(s)
-	}
-	t.Result = DocType + s
-	t.html.Parse(t.Result)
+	err := t.Parse(src)
 	return t, err
+}
+
+func (t *Template) Parse(src []byte) error {
+	s, err := FilterParse(src)
+	if err != nil {
+		return err
+	}
+	_, err = t.Html.Parse(string(s))
+	return err
+}
+
+func ParseString(src string) (*Template, error) {
+	t := New()
+	err := t.ParseString(src)
+	return t, err
+}
+
+func (t *Template) ParseString(src string) error {
+	return t.Parse([]byte(src))
 }
 
 func ParseFile(filename string) (*Template, error) {
 	t := New()
-	_, err := t.ParseFile(filename)
+	err := t.ParseFile(filename)
 	return t, err
 }
 
-func (t *Template) ParseFile(filename string) (*Template, error) {
+func (t *Template) ParseFile(filename string) error {
 	b, err := ioutil.ReadFile(filepath.Join(TemplateDir, filename))
 	if err != nil {
-		return t, err
+		return err
 	}
-	_, err = t.Parse(b)
-	return t, err
+	err = t.Parse(b)
+	return err
 }
 
 func (t *Template) Execute(data interface{}) (string, error) {
 	buf := &bytes.Buffer{}
-	err := t.html.Execute(buf, data)
-	return buf.String(), err
+	err := t.Html.Execute(buf, data)
+	if err != nil {
+		return "", err
+	}
+	r, err := DocParse(buf.Bytes())
+	return DocType + r, err
 }

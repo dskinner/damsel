@@ -30,7 +30,7 @@ func Test_lexer1(t *testing.T) {
 		:css /css/
 			main.css
 			extra.css
-			
+
 	%body
 		%h1 Hello, World
 `

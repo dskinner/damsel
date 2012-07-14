@@ -1,0 +1,8 @@
+%html %body
+	%div
+		{range $i, $e := .}
+		{if Mod $i 2}
+		%ul
+		{end}
+			%li {$e}
+		{end}
