@@ -110,13 +110,7 @@ and whitespace is preserved
 
 ### Integration with html/template
 
-First off, you need to set dmsl.ActionHandler to the builtin dmsl.ActionGoTemplate
-
-```
-dmsl.ActionHandler = dmsl.ActionGoTemplate
-```
-
-Calling dmsl.ParseFile or dmsl.Parse will return an instance of dmsl.Template that has already parsed the dmsl and loaded the result in an html/template.Template.
+Calling dmsl.ParseFile or dmsl.Parse will return an instance of dmsl.Template that has already parsed a portion of the dmsl and loaded the result in an html/template.Template.
 Call the Execute(interface{}) method from there, given [10][10]int for example:
 
 ```
@@ -124,23 +118,40 @@ Call the Execute(interface{}) method from there, given [10][10]int for example:
 	%table {range .}
 		%tr {range .}
 			%td {.}
+{end}{end}
 ```
 
-The {end} here is optional (omitted in the example above), but there are times you may wish to use {end} to properly control flow
+Development is still on-going, and at one point the {end} was optional, but I've found in practice that this just creates confusion and errors except for the most trivial of examples (above). {end} will be
+required from here-after.
 
 ```
 %html %body
-	%table {range .}
+	%table
+	{range .}
 
 		{if .}
-		%tr {range .}
+
+		%tr
+		{range .}
 			%td {.}
+		{end}
+
 		{else}
 		%tr %td None
 		{end}
 
 		%p some trailing text
+	{end}
 ```
+
+### Integration with other templating systems
+
+To assure dmsl is rendered correctly with your choice of template options, follow these steps
+
+* Call dmsl.FilterParse([]byte)
+* Pass the result to a templating system
+* Pass that response to dmsl.DocParse([]byte)
+* Display result.
 
 ### Damsel Comments
 

@@ -23,9 +23,9 @@ type Filter struct {
 
 type FuncMap map[string]filterFn
 
-var DefaultFuncMap = map[string]filterFn {
-	"js": js,
-	"css": css,
+var DefaultFuncMap = map[string]filterFn{
+	"js":      js,
+	"css":     css,
 	"extends": extends,
 	"include": include,
 }
@@ -65,7 +65,6 @@ func (p *FilterParser) handleFilterEnd(t Token) {
 	p.lex.pos = p.filter.start
 	p.lex.start = p.filter.start
 }
-
 
 func (p *FilterParser) ReceiveToken(t Token) {
 	switch t.typ {
@@ -116,11 +115,11 @@ func DocParse(bytes []byte) (result string, err error) {
 	p.lex.bytes = bytes
 
 	/*
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
+		defer func() {
+			if r := recover(); r != nil {
+				err = r.(error)
+			}
+		}()
 	*/
 
 	p.lex.Run()

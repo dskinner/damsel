@@ -22,16 +22,16 @@ var AttrId []byte = []byte("id")
 var AttrClass []byte = []byte("class")
 
 type Elem struct {
-	parent     *Elem
-	children   []*Elem
-	ws         int
-	tag        []byte
-	id         []byte
-	class      [][]byte
-	attr       [][][]byte
-	text       [][]byte
-	tail       [][]byte
-	isComment  bool
+	parent    *Elem
+	children  []*Elem
+	ws        int
+	tag       []byte
+	id        []byte
+	class     [][]byte
+	attr      [][][]byte
+	text      [][]byte
+	tail      [][]byte
+	isComment bool
 }
 
 func (el *Elem) SubElement() *Elem {

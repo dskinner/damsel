@@ -1,13 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/dskinner/damsel/dmsl"
 	"log"
 	"os"
 	"runtime/pprof"
-	"encoding/json"
 )
 
 var filename = flag.String("f", "", "file to parse")

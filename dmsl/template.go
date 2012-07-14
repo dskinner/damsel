@@ -19,13 +19,13 @@ func Delims(l, r string) {
 }
 
 func Mod(i, n int) bool {
-	if (i%n) == 0 {
+	if (i % n) == 0 {
 		return true
 	}
 	return false
 }
 
-var funcMap = template.FuncMap {
+var funcMap = template.FuncMap{
 	"Mod": Mod,
 }
 
