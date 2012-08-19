@@ -11,9 +11,9 @@ func js(filter *Filter) string {
 	for i := 0; i < filter.Whitespace/2; i++ {
 		ws += "\t"
 	}
-	s := ws
+	s := ""
 	for _, v := range filter.Content {
-		s += "<script type=\"text/javascript\" src=\"" + string(filter.Args) + string(v) + "\"/>"
+		s += ws + "%script[type=\"text/javascript\"][src=\"" + string(filter.Args) + string(v) + "\"]\n"
 	}
 	return s
 }

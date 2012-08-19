@@ -82,6 +82,10 @@ func (p *FilterParser) ReceiveToken(t Token) {
 			p.filter.contentWs = CountWs(t)
 		}
 	case TokenFilterContent:
+		// BUG tmp fix for blank token
+		if t.start == t.end {
+			break
+		}
 		// TODO work on contentWs/2
 		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs/2):t.end])
 		break

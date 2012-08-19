@@ -31,7 +31,6 @@ var funcMap = template.FuncMap{
 
 type Template struct {
 	Html   *template.Template
-	Result string
 }
 
 func New() *Template {
