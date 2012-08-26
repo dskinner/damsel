@@ -5,19 +5,24 @@ import (
 	"html/template"
 	"io/ioutil"
 	"path/filepath"
+	"dasa.cc/damsel/dmsl/parse"
 )
 
 var Debug = false
 var TemplateDir = ""
-var DocType = "<!DOCTYPE html>"
 var LeftDelim = "{"
 var RightDelim = "}"
+
+func SetPprint(b bool) {
+	parse.Pprint = b
+}
 
 func Delims(l, r string) {
 	LeftDelim = l
 	RightDelim = r
 }
 
+// Mod provides a modulus function to html/template
 func Mod(i, n int) bool {
 	if (i % n) == 0 {
 		return true
@@ -31,6 +36,7 @@ var funcMap = template.FuncMap{
 
 type Template struct {
 	Html   *template.Template
+	DocType string
 }
 
 func New() *Template {
@@ -46,7 +52,7 @@ func Parse(src []byte) (*Template, error) {
 }
 
 func (t *Template) Parse(src []byte) error {
-	s, err := FilterParse(src)
+	s, err := parse.ActionParse(src)
 	if err != nil {
 		return err
 	}
@@ -85,6 +91,15 @@ func (t *Template) Execute(data interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	r, err := DocParse(buf.Bytes())
-	return DocType + r, err
+	r, err := parse.DocParse(buf.Bytes())
+	return t.DocType + r, err
+}
+
+func init() {
+	parse.DefaultFuncMap = map[string]parse.ActionFn{
+		"js":      js,
+		"css":     css,
+		"extends": extends,
+		"include": include,
+	}
 }

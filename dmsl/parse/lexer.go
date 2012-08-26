@@ -1,4 +1,4 @@
-package dmsl
+package parse
 
 const eof = -1
 
@@ -14,13 +14,12 @@ const (
 	TokenText
 	TokenTextWs
 	TokenComment
-	TokenFilterStart
-	TokenFilterName
-	TokenFilterArgs
-	TokenFilterContent
-	TokenFilterContentWs
-	TokenFilterEnd
-	TokenAction
+	TokenActionStart
+	TokenActionName
+	TokenActionArgs
+	TokenActionContent
+	TokenActionContentWs
+	TokenActionEnd
 	TokenEOF
 )
 
@@ -40,13 +39,12 @@ var TokenString = map[TokenType]string{
 	TokenText:            "Text",
 	TokenTextWs:          "TextWs",
 	TokenComment:         "Comment",
-	TokenFilterStart:     "FilterStart",
-	TokenFilterName:      "FilterName",
-	TokenFilterArgs:      "FilterArgs",
-	TokenFilterContent:   "FilterContent",
-	TokenFilterContentWs: "FilterContentWs",
-	TokenFilterEnd:       "FilterEnd",
-	TokenAction:          "Action",
+	TokenActionStart:     "ActionStart",
+	TokenActionName:      "ActionName",
+	TokenActionArgs:      "ActionArgs",
+	TokenActionContent:   "ActionContent",
+	TokenActionContentWs: "ActionContentWs",
+	TokenActionEnd:       "ActionEnd",
 	TokenEOF:             "EOF",
 }
 
@@ -61,12 +59,6 @@ type lexer struct {
 	state stateFn
 	pos   int
 	start int
-
-	// In same cases, we want to save the current start position and restore it later.
-	// For simple cases, this can be easier then spinning off a second lexer to handle
-	// a specific set of input. See lexer.save() and lexer.restore()
-	saveStart int
-
 	ident    int
 	receiver TokenReceiver
 }
@@ -94,14 +86,6 @@ func (l *lexer) next() {
 
 func (l *lexer) reset() {
 	l.start = l.pos
-}
-
-func (l *lexer) save() {
-	l.saveStart = l.start
-}
-
-func (l *lexer) restore() {
-	l.start = l.saveStart
 }
 
 func (l *lexer) rune() rune {
@@ -144,9 +128,9 @@ func lexWhiteSpace(l *lexer) stateFn {
 			return lexComment
 		case ':':
 			l.saveIdent()
-			l.emit(TokenFilterStart)
+			l.emit(TokenActionStart)
 			l.discard()
-			return lexFilter
+			return lexAction
 		case '%', '#', '.', '!':
 			l.emit(TokenElement)
 			return lexHash
@@ -320,10 +304,6 @@ func lexText(l *lexer) stateFn {
 			l.emit(TokenText)
 			l.discard()
 			return lexWhiteSpace
-		case '{': // TODO use correct delimiters!!!!
-			l.save()
-			l.reset()
-			return lexAction
 		case eof:
 			l.emit(TokenText)
 			return nil
@@ -335,36 +315,19 @@ func lexText(l *lexer) stateFn {
 	panic("unreachable")
 }
 
+// lexAction stands alone for parsing, not mingling with lexWhiteSpace until
+// it's completely finished.
 func lexAction(l *lexer) stateFn {
 	for {
 		switch l.rune() {
-		case '}':
-			l.emit(TokenAction)
-			l.restore()
-			return lexText
-		case eof:
-			return nil
-		default:
-			l.next()
-		}
-	}
-
-	panic("unreachable")
-}
-
-// lexFilter stands alone for parsing, not mingling with lexWhiteSpace until
-// it's completely finished.
-func lexFilter(l *lexer) stateFn {
-	for {
-		switch l.rune() {
 		case ' ', '\t':
-			l.emit(TokenFilterName)
+			l.emit(TokenActionName)
 			l.discard()
-			return lexFilterArgs
+			return lexActionArgs
 		case '\n':
-			l.emit(TokenFilterName)
+			l.emit(TokenActionName)
 			l.discard()
-			return lexFilterWhiteSpace
+			return lexActionWhiteSpace
 		case eof:
 			return nil
 		default:
@@ -375,13 +338,13 @@ func lexFilter(l *lexer) stateFn {
 	panic("unreachable")
 }
 
-func lexFilterArgs(l *lexer) stateFn {
+func lexActionArgs(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '\n':
-			l.emit(TokenFilterArgs)
+			l.emit(TokenActionArgs)
 			l.discard()
-			return lexFilterWhiteSpace
+			return lexActionWhiteSpace
 		case eof:
 			return nil
 		default:
@@ -392,38 +355,38 @@ func lexFilterArgs(l *lexer) stateFn {
 	panic("unreachable")
 }
 
-func lexFilterWhiteSpace(l *lexer) stateFn {
+func lexActionWhiteSpace(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case ' ', '\t':
 			l.next()
 			break
 		case '\n':
-			l.emit(TokenFilterContent)
+			l.emit(TokenActionContent)
 			l.discard()
 			break
 		default:
 			if (l.pos-l.start)*2 <= l.ident {
-				l.emit(TokenFilterEnd)
+				l.emit(TokenActionEnd)
 				l.discardIdent() // discards previously saved ident level
 				// dont reset position so lexWhiteSpace is aware of current ident level
 				return lexWhiteSpace
 			}
-			l.emit(TokenFilterContentWs)
-			return lexFilterContent
+			l.emit(TokenActionContentWs)
+			return lexActionContent
 		}
 	}
 
 	panic("unreachable")
 }
 
-func lexFilterContent(l *lexer) stateFn {
+func lexActionContent(l *lexer) stateFn {
 	for {
 		switch l.rune() {
 		case '\n':
-			l.emit(TokenFilterContent)
+			l.emit(TokenActionContent)
 			l.discard()
-			return lexFilterWhiteSpace
+			return lexActionWhiteSpace
 		default:
 			l.next()
 			break

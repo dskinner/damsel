@@ -14,8 +14,4 @@ func Open(filename string, dir string) []byte {
 	return b
 }
 
-// CountWs is only called for appropriate emitted tokens that are known to be
-// whitespace. *2 is to account for inlined tags that occupy ws+1
-func CountWs(t Token) int {
-	return (t.end - t.start) * 2
-}
+

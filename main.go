@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/dskinner/damsel/dmsl"
+	"dasa.cc/damsel/dmsl"
+	"dasa.cc/damsel/dmsl/parse"
 	"log"
 	"os"
 	"runtime/pprof"
@@ -27,7 +28,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 
-		dmsl.DocParse(dmsl.Open("tests/bigtable2.dmsl", ""))
+		parse.DocParse(dmsl.Open("tests/bigtable2.dmsl", ""))
 		return
 	}
 
@@ -37,11 +38,11 @@ func main() {
 	}
 
 	if *pprint {
-		dmsl.Pprint = true
+		parse.Pprint = true
 	}
 
 	if *debug {
-		r, err := dmsl.DocParse(dmsl.Open(*filename, ""))
+		r, err := parse.DocParse(dmsl.Open(*filename, ""))
 		if err != nil {
 			fmt.Println(err)
 		}

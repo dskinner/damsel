@@ -1,43 +1,55 @@
-package dmsl
+package parse
 
 import (
 	"fmt"
 )
 
-type FilterError struct {
+// CountWs is only called for appropriate emitted tokens that are known to be
+// whitespace. The token length is multiplied by two to account for inlined tags
+// that occupy ws+1
+func CountWs(t Token) int {
+	return (t.end - t.start) * 2
+}
+
+type ActionError struct {
 	Value string
 }
 
-func (e *FilterError) Error() string {
-	return fmt.Sprintf("damsel: filter \"%s\" unknown.", e.Value)
+func (e *ActionError) Error() string {
+	return fmt.Sprintf("damsel: action \"%s\" unknown.", e.Value)
 }
 
-type Filter struct {
+type Action struct {
 	name       []byte
 	start      int
 	contentWs  int
 	Args       []byte
 	Content    [][]byte
-	Whitespace int
+	whitespace int
 }
 
-type FuncMap map[string]filterFn
-
-var DefaultFuncMap = map[string]filterFn{
-	"js":      js,
-	"css":     css,
-	"extends": extends,
-	"include": include,
+func (a *Action) Whitespace() string {
+	ws := ""
+	for i := 0; i < a.whitespace/2; i++ {
+		ws += "\t"
+	}
+	return ws
 }
 
-type FilterParser struct {
+type ActionFn func(*Action) string
+
+type FuncMap map[string]ActionFn
+
+var DefaultFuncMap = map[string]ActionFn{}
+
+type ActionParser struct {
 	lex     *lexer
-	filter  *Filter
+	action  *Action
 	funcMap FuncMap
 }
 
-func FilterParse(bytes []byte) ([]byte, error) {
-	p := new(FilterParser)
+func ActionParse(bytes []byte) ([]byte, error) {
+	p := new(ActionParser)
 	p.funcMap = DefaultFuncMap
 	p.lex = NewLexer(p)
 	p.lex.bytes = bytes
@@ -46,51 +58,51 @@ func FilterParse(bytes []byte) ([]byte, error) {
 	return p.lex.bytes, nil
 }
 
-func (p *FilterParser) handleFilterEnd(t Token) {
-	name := string(p.filter.name)
+func (p *ActionParser) handleActionEnd(t Token) {
+	name := string(p.action.name)
 
 	if p.funcMap[name] == nil {
-		panic(&FilterError{name})
+		panic(&ActionError{name})
 	}
-	// TODO filterFn should return possible error
-	result := p.funcMap[name](p.filter)
+	// TODO actionFn should return possible error
+	result := p.funcMap[name](p.action)
 
 	// TODO just use []byte
 	b := []byte(result)
 
-	// need to evaluate filterFn result against normal lexing
-	p.lex.bytes = append(p.lex.bytes[:p.filter.start], append(b, p.lex.bytes[t.start-1:]...)...)
+	// need to evaluate actionFn result against normal lexing
+	p.lex.bytes = append(p.lex.bytes[:p.action.start], append(b, p.lex.bytes[t.start-1:]...)...)
 
 	// reset pos and start to delete/insert point for lexer
-	p.lex.pos = p.filter.start
-	p.lex.start = p.filter.start
+	p.lex.pos = p.action.start
+	p.lex.start = p.action.start
 }
 
-func (p *FilterParser) ReceiveToken(t Token) {
+func (p *ActionParser) ReceiveToken(t Token) {
 	switch t.typ {
-	case TokenFilterStart:
-		p.filter = &Filter{start: t.start, Whitespace: CountWs(t)}
+	case TokenActionStart:
+		p.action = &Action{start: t.start, whitespace: CountWs(t)}
 		break
-	case TokenFilterName:
-		p.filter.name = p.lex.bytes[t.start:t.end]
+	case TokenActionName:
+		p.action.name = p.lex.bytes[t.start:t.end]
 		break
-	case TokenFilterArgs:
-		p.filter.Args = p.lex.bytes[t.start:t.end]
+	case TokenActionArgs:
+		p.action.Args = p.lex.bytes[t.start:t.end]
 		break
-	case TokenFilterContentWs:
-		if p.filter.contentWs == 0 {
-			p.filter.contentWs = CountWs(t)
+	case TokenActionContentWs:
+		if p.action.contentWs == 0 {
+			p.action.contentWs = CountWs(t)
 		}
-	case TokenFilterContent:
+	case TokenActionContent:
 		// BUG tmp fix for blank token
 		if t.start == t.end {
 			break
 		}
 		// TODO work on contentWs/2
-		p.filter.Content = append(p.filter.Content, p.lex.bytes[(t.start+p.filter.contentWs/2):t.end])
+		p.action.Content = append(p.action.Content, p.lex.bytes[(t.start+p.action.contentWs/2):t.end])
 		break
-	case TokenFilterEnd:
-		p.handleFilterEnd(t)
+	case TokenActionEnd:
+		p.handleActionEnd(t)
 	case TokenEOF:
 		// TODO
 		break
@@ -153,7 +165,13 @@ func DocParse(bytes []byte) (result string, err error) {
 		}
 	}
 
-	result = p.root.children[0].String()
+	// BUG(d) DOCTYPE check is horrid and could potentially result in panic for non-conformant or bug-ridden dmsl docs.
+	if p.root.children[0].isComment {
+		result = p.root.children[0].String()
+		result += p.root.children[1].String()
+	} else {
+		result = p.root.children[0].String()
+	}
 	return result, err
 }
 

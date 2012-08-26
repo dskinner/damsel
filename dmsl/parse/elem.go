@@ -1,4 +1,4 @@
-package dmsl
+package parse
 
 import "bytes"
 
@@ -58,6 +58,17 @@ func contains(container [][]byte, item []byte) bool {
 
 func (el *Elem) ToString(buf *bytes.Buffer, pprint bool) {
 
+	// TODO get this doctype if out of here
+	if el.isComment && len(el.text) > 0 && bytes.Contains(el.text[0], []byte("DOCTYPE")) {
+		buf.WriteRune(LeftCarrot)
+		buf.WriteRune(Exclamation)
+		for _, text := range el.text {
+			buf.Write(text)
+		}
+		buf.WriteRune(RightCarrot)
+		buf.WriteRune(LineBreak)
+		return
+	}
 	// TODO get this `if` out of here
 	if el.isComment {
 		buf.WriteRune(LeftCarrot)

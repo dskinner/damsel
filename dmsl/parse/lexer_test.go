@@ -1,4 +1,4 @@
-package dmsl
+package parse
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ type TokenPrinter struct {
 
 func (t *TokenPrinter) ReceiveToken(tkn Token) {
 	fmt.Println(TokenString[tkn.typ])
-	if tkn.typ == TokenFilterContentWs {
+	if tkn.typ == TokenActionContentWs {
 		fmt.Println(tkn.end - tkn.start)
 	} else {
 		fmt.Println(string(t.l.bytes[tkn.start:tkn.end]))
@@ -43,7 +43,7 @@ func Test_lexer1(t *testing.T) {
 
 func Benchmark_bigtable2(b *testing.B) {
 	b.StopTimer()
-	bytes, err := ioutil.ReadFile("../tests/bigtable2.dmsl")
+	bytes, err := ioutil.ReadFile("../../tests/bigtable2.dmsl")
 	if err != nil {
 		b.Fatal(err)
 	}
