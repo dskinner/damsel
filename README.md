@@ -1,5 +1,7 @@
 # Installation
 
+This package expects to exist at `$GOPATH/src/dasa.cc/damsel` and can be installed with:
+
 ```
 go get dasa.cc/damsel
 ```
