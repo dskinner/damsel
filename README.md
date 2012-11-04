@@ -1,7 +1,7 @@
 # Installation
 
 ```
-go get github.com/dskinner/damsel
+go get dasa.cc/damsel
 ```
 
 # Command Line
