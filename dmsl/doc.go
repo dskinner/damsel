@@ -131,7 +131,7 @@ If you wish to append child nodes instead of overriding the original content, sp
 
 	#content[super]
 	  %p A second paragraph
-	
+
 The action include uses the whitespace preceding its declaration to insert
 content from a separate document into the current. For example, given the
 following document:

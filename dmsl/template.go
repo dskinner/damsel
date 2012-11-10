@@ -2,10 +2,10 @@ package dmsl
 
 import (
 	"bytes"
+	"dasa.cc/damsel/dmsl/parse"
 	"html/template"
 	"io/ioutil"
 	"path/filepath"
-	"dasa.cc/damsel/dmsl/parse"
 )
 
 var Debug = false
@@ -35,7 +35,7 @@ var funcMap = template.FuncMap{
 }
 
 type Template struct {
-	Html   *template.Template
+	Html    *template.Template
 	DocType string
 }
 

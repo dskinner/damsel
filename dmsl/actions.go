@@ -1,11 +1,11 @@
 package dmsl
 
 import (
-	"strings"
+	"dasa.cc/damsel/dmsl/parse"
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"dasa.cc/damsel/dmsl/parse"
+	"strings"
 )
 
 func open(filename string, dir string) []byte {

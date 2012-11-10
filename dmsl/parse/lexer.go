@@ -55,10 +55,10 @@ type TokenReceiver interface {
 type stateFn func(*lexer) stateFn
 
 type lexer struct {
-	bytes []byte
-	state stateFn
-	pos   int
-	start int
+	bytes    []byte
+	state    stateFn
+	pos      int
+	start    int
 	ident    int
 	receiver TokenReceiver
 }

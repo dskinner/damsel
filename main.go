@@ -1,11 +1,11 @@
 package main
 
 import (
+	"dasa.cc/damsel/dmsl"
+	"dasa.cc/damsel/dmsl/parse"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"dasa.cc/damsel/dmsl"
-	"dasa.cc/damsel/dmsl/parse"
 	"log"
 	"os"
 	"runtime/pprof"

@@ -11,7 +11,8 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn match dmslDirective /[%#.][a-zA-Z0-9\-_]*/he=e-1 contains=dmslTag
+" ^\s*
+syn match dmslDirective "\v^(\s*([%#.!][a-zA-Z0-9\-_]*)*)*" contains=dmslTag
 syn match dmslTag contained "[a-zA-Z0-9]"
 
 syn match dmslFormat "{.*}"

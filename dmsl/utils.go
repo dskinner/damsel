@@ -13,5 +13,3 @@ func Open(filename string, dir string) []byte {
 	}
 	return b
 }
-
-
