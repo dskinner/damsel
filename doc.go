@@ -1,5 +1,5 @@
 /*
-Package dmsl provides html outlining via css-selectors and common template
+Package damsel provides html outlining via css-selectors and common template
 functionality.
 
 Tags

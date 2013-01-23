@@ -26,4 +26,4 @@ damsel -h
 
 ## Documentation
 
-http://go.pkgdoc.org/github.com/dskinner/damsel/dmsl
+http://go.pkgdoc.org/github.com/dskinner/damsel
