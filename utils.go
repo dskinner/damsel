@@ -1,4 +1,4 @@
-package dmsl
+package damsel
 
 import (
 	"io/ioutil"

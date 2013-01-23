@@ -199,4 +199,4 @@ Here's another example.
 	    %p some trailing text
 	  {end}
 */
-package dmsl
+package damsel

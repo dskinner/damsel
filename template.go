@@ -1,8 +1,8 @@
-package dmsl
+package damsel
 
 import (
 	"bytes"
-	"dasa.cc/damsel/dmsl/parse"
+	"dasa.cc/damsel/parse"
 	"html/template"
 	"io/ioutil"
 	"path/filepath"
@@ -30,8 +30,13 @@ func Mod(i, n int) bool {
 	return false
 }
 
+func StrEq(a, b string) bool {
+	return a == b
+}
+
 var funcMap = template.FuncMap{
-	"Mod": Mod,
+	"Mod":   Mod,
+	"StrEq": StrEq,
 }
 
 type Template struct {

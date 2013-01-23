@@ -1,8 +1,8 @@
-package main
+package damsel
 
 import (
+	"dasa.cc/damsel/parse"
 	"fmt"
-	"github.com/dskinner/damsel/dmsl"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -21,10 +21,10 @@ func get_html(t *testing.T, s string) string {
 
 func test(t *testing.T, s string, data interface{}) {
 	fmt.Println("testing:", s)
-	dmsl.TemplateDir = TestsDir
+	TemplateDir = TestsDir
 	html := get_html(t, s)
 
-	tmpl, _ := dmsl.ParseFile(s + ".dmsl")
+	tmpl, _ := ParseFile(s + ".dmsl")
 	r, err := tmpl.Execute(data)
 	r = strings.TrimSpace(r)
 	if r != html {
@@ -92,7 +92,7 @@ func Benchmark_parser(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		dmsl.DocParse(bytes)
+		parse.DocParse(bytes)
 	}
 }
 
@@ -103,7 +103,7 @@ func Benchmark_bigtable_go_stdlib(b *testing.B) {
 		b.Fatal(err)
 	}
 	table := [1000][10]int{}
-	tmpl, _ := dmsl.Parse(bytes)
+	tmpl, _ := Parse(bytes)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		tmpl.Execute(table)
@@ -119,7 +119,7 @@ func Benchmark_bigtable(b *testing.B) {
 	table := [1000][10]int{}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		tpl, _ := dmsl.Parse(bytes)
+		tpl, _ := Parse(bytes)
 		tpl.Execute(table)
 	}
 }
@@ -132,7 +132,7 @@ func Benchmark_bigtable2(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		tpl, _ := dmsl.Parse(bytes)
+		tpl, _ := Parse(bytes)
 		tpl.Execute(nil)
 	}
 }

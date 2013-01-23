@@ -109,7 +109,7 @@ func (l *lexer) discardIdent() {
 	l.ident = -1
 }
 
-// These are the lexer states that will execute on each iteration based on which lexer.state is set to.
+// These are the lexer states that will execute on each iteration based on what lexer.state is set to.
 
 func lexWhiteSpace(l *lexer) stateFn {
 	for {

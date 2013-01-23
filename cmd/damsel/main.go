@@ -1,8 +1,8 @@
 package main
 
 import (
-	"dasa.cc/damsel/dmsl"
-	"dasa.cc/damsel/dmsl/parse"
+	"dasa.cc/damsel"
+	"dasa.cc/damsel/parse"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -28,7 +28,7 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 
-		parse.DocParse(dmsl.Open("tests/bigtable2.dmsl", ""))
+		parse.DocParse(damsel.Open("tests/bigtable2.dmsl", ""))
 		return
 	}
 
@@ -42,20 +42,22 @@ func main() {
 	}
 
 	if *debug {
-		r, err := parse.DocParse(dmsl.Open(*filename, ""))
+		r, err := parse.DocParse(damsel.Open(*filename, ""))
 		if err != nil {
 			fmt.Println(err)
 		}
 		fmt.Println(r)
 	} else {
-		t, err := dmsl.ParseFile(*filename)
+		t, err := damsel.ParseFile(*filename)
 
 		var d interface{}
 		if err = json.Unmarshal([]byte(*data), &d); err != nil {
-			fmt.Println(err.Error())
+			if len(*data) > 0 {
+				fmt.Println(err.Error())
+			}
 		}
 
-		result, err := t.Execute(d.([]interface{}))
+		result, err := t.Execute(d)
 		if err != nil {
 			fmt.Println(err)
 		} else {

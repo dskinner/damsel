@@ -1,7 +1,7 @@
-package dmsl
+package damsel
 
 import (
-	"dasa.cc/damsel/dmsl/parse"
+	"dasa.cc/damsel/parse"
 	"io/ioutil"
 	"log"
 	"path/filepath"
