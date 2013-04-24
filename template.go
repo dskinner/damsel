@@ -1,52 +1,25 @@
 package damsel
 
 import (
-	"bytes"
 	"dasa.cc/damsel/parse"
-	"html/template"
 	"io/ioutil"
 	"path/filepath"
 )
 
 var Debug = false
 var TemplateDir = ""
-var LeftDelim = "{"
-var RightDelim = "}"
 
 func SetPprint(b bool) {
 	parse.Pprint = b
 }
 
-func Delims(l, r string) {
-	LeftDelim = l
-	RightDelim = r
-}
-
-// Mod provides a modulus function to html/template
-func Mod(i, n int) bool {
-	if (i % n) == 0 {
-		return true
-	}
-	return false
-}
-
-func StrEq(a, b string) bool {
-	return a == b
-}
-
-var funcMap = template.FuncMap{
-	"Mod":   Mod,
-	"StrEq": StrEq,
-}
-
 type Template struct {
-	Html    *template.Template
 	DocType string
+	result  []byte
 }
 
 func New() *Template {
 	t := &Template{}
-	t.Html = template.New("").Delims(LeftDelim, RightDelim).Funcs(funcMap)
 	return t
 }
 
@@ -61,8 +34,8 @@ func (t *Template) Parse(src []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = t.Html.Parse(string(s))
-	return err
+	t.result = s
+	return nil
 }
 
 func ParseString(src string) (*Template, error) {
@@ -90,13 +63,11 @@ func (t *Template) ParseFile(filename string) error {
 	return err
 }
 
-func (t *Template) Execute(data interface{}) (string, error) {
-	buf := &bytes.Buffer{}
-	err := t.Html.Execute(buf, data)
+func (t *Template) Result() (string, error) {
+	r, err := parse.DocParse(t.result)
 	if err != nil {
 		return "", err
 	}
-	r, err := parse.DocParse(buf.Bytes())
 	return t.DocType + r, err
 }
 
