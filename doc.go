@@ -1,6 +1,5 @@
 /*
-Package damsel provides html outlining via css-selectors and common template
-functionality.
+Package damsel provides html outlining via css-selectors and common template functionality.
 
 Tags
 
@@ -34,7 +33,8 @@ quotes around the attribute value to escape [].
 
 Text and Whitespace
 
-TODO some info here.
+Whitespace can be manipulated in various ways as described below, but it's worth pointing out that
+large amounts of content are simply not suitable for such document types (Damsel, Haml, etc).
 
 	%p One
 	  \ Two
@@ -58,8 +58,9 @@ Whitespace can be preserved using `
 HTML Comments
 
 Supports commenting out blocks of code via html comments with optional
-text and browser specfic IFs.
+text and browser specfic IFs. This also includes DOCTYPE declarations.
 
+	!DOCTYPE html
 	%html %body
 	  ! %ul
 	    %li 1
@@ -81,10 +82,9 @@ body tag in this case. You can also nest items under a comment.
 
 Actions
 
-There is basic support for actions (but still on-going testing and changes).
-An action is just another way of calling a function while also preserving
-indention of the inner content lines, making this suitable for parsing other
-indention based markup. Once an action has been processed, the lexer will parse
+There is basic support for actions. An action is just another way of calling a function
+while also preserving indention of the inner content lines, making this suitable for
+parsing other indention based markup. Once an action has been processed, the lexer will parse
 the result as though it was part of the original document.
 
 In time, this package will facilitate custom functions. Currently
@@ -161,14 +161,13 @@ Other Template Integration
 This package should be ok for use with most text templating options. Helpers
 that provide integration with html/template take the following steps.
 
-	- Call dmsl.FilterParse(b []byte)
+	- Call dmsl/parse.ActionParse(b []byte)
 	- Pass the result to package html/template and execute
-	- Call dmsl.DocParse(b []byte)
+	- Call dmsl/parse.DocParse(b []byte)
 	- Display result
 
-Calling dmsl.ParseFile or dmsl.Parse will return an instance of dmsl.Template
-that parses actions and passes the result to html/template.Template. Call
-Execute(interface{}) to produce the final result. For example, given [10][10]int:
+Calling dmsl.NewHtmlTemplate will return an instance that parses actions and passes the result
+to html/template.Template. Call Execute(interface{}) to produce the final result. For example, given [10][10]int:
 
 	%html %body
 	  %table {range .}
@@ -176,8 +175,8 @@ Execute(interface{}) to produce the final result. For example, given [10][10]int
 	      %td {.}
 	{end}{end}
 
-Development is still on-going and at one-point the {end} was optional, but in practice
-this creates confusion and errors except for the most trivial of examples (above).
+At one-point the {end} was optional with deeper integration of html/template, but in practice this created
+confusion and errors except for the most trivial of examples (above).
 
 Here's another example.
 
