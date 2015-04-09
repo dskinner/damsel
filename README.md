@@ -45,7 +45,7 @@ document via an #id tag.
 ### Attributes
 
 Attributes can be inlined, line-breaked, or a combination of such. Provide
-quotes around the attribute value to escape [].
+quotes around the attribute value to escape brackets.
 
 	%html %body
 
@@ -134,7 +134,7 @@ This would generate the following document.
 
 Damsel allows any element with an id specified to be overridden. Also required
 is at least one root node that will serve as the main document output.
-Additional root nodes are checked against thefirst for overridable content.
+Additional root nodes are checked against the first for overridable content.
 
 	%html %body
 	  #content
