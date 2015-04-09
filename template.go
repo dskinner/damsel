@@ -16,7 +16,6 @@ func SetPprint(b bool) {
 }
 
 type Template struct {
-	DocType string
 	result  []byte
 }
 
@@ -84,7 +83,7 @@ func (t *Template) Result() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return t.DocType + r, err
+	return r, err
 }
 
 func init() {
