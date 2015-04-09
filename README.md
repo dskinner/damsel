@@ -1,4 +1,4 @@
-# Damsel [![Build Status](https://drone.io/github.com/dskinner/damsel/status.png)](https://drone.io/github.com/dskinner/damsel/latest) [![GoDoc](https://godoc.org/dasa.cc/damsel?status.svg)](https://godoc.org/dasa.cc/damsel)
+# Damsel [![GoDoc](https://godoc.org/dasa.cc/damsel?status.svg)](https://godoc.org/dasa.cc/damsel)
 
 Markup language featuring html outlining via css-selectors, extensible via pkg html/template and others.
 
