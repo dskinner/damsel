@@ -1,11 +1,12 @@
 package damsel
 
 import (
-	"dasa.cc/damsel/parse"
 	"io/ioutil"
 	"log"
 	"path/filepath"
 	"strings"
+
+	"dasa.cc/damsel/parse"
 )
 
 func open(filename string, dir string) []byte {
@@ -15,6 +16,7 @@ func open(filename string, dir string) []byte {
 	}
 	return b
 }
+
 func js(action *parse.Action) string {
 	ws := action.Whitespace()
 	s := ""
