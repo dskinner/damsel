@@ -1,0 +1,8 @@
+build:
+  image: golang
+  commands:
+    - go get dasa.cc/damsel/...
+    - go build dasa.cc/damsel/cmd/damsel
+    - go test dasa.cc/damsel/...
+clone:
+  path: dasa.cc/damsel
